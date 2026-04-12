@@ -1,0 +1,33 @@
+[stt]
+language = "unknown"
+mode = "transcribe"
+high_vad_sensitivity = true
+
+[llm]
+model = "google/gemma-4-31b-it:free"
+reasoning_effort = "none"
+verbosity = "low"
+max_output_tokens = 96
+use_websocket = true
+
+[tts]
+voice = "ajay"
+pace = 1.0
+temperature = 0.35
+sample_rate = 16000
+target_language = "en-IN"
+
+[voice]
+min_endpointing_delay = 0.2
+max_endpointing_delay = 0.9
+min_interruption_duration = 0.7
+min_interruption_words = 1
+false_interruption_timeout = 1.5
+resume_false_interruption = true
+preemptive_generation = true
+user_away_timeout = 12.0
+min_consecutive_speech_delay = 0.1
+
+[spam_detection]
+call_duration_seconds = 12.0
+classification_model = "google/gemma-4-31b-it:free"

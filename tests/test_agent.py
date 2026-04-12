@@ -16,7 +16,7 @@ sys.modules['livekit.plugins'] = MagicMock()
 sys.modules['livekit.plugins.noise_cancellation'] = MagicMock()
 sys.modules['livekit.plugins.silero'] = MagicMock()
 
-from agent import VoiceAgent, extract_transcript_from_chat_ctx, SpamDetectionConfig
+from src.agent import VoiceAgent, extract_transcript_from_chat_ctx, SpamDetectionConfig
 
 
 class MockChatMessage:
@@ -115,8 +115,8 @@ class TestAgentFunctionality:
         """Test that VoiceAgent initializes correctly"""
         # This test checks that we can instantiate the VoiceAgent
         # without errors (mocking the complex dependencies)
-        with patch('agent.load_config'), patch('agent.load_instructions'):
-            with patch('agent.create_stt'), patch('agent.create_llm'), patch('agent.create_tts'):
+        with patch('src.agent.load_config'), patch('src.agent.load_instructions'):
+            with patch('src.agent.create_stt'), patch('src.agent.create_llm'), patch('src.agent.create_tts'):
                 agent = VoiceAgent()
                 assert agent is not None
                 assert hasattr(agent, '_config')

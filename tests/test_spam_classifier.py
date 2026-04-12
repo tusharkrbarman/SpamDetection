@@ -8,7 +8,7 @@ import os
 # Add the project root to sys.path so we can import modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from spam_classifier import classify_transcript, ClassificationResult
+from src.spam_classifier import classify_transcript, ClassificationResult
 
 
 class TestSpamClassifier:
@@ -54,13 +54,13 @@ class TestSpamClassifier:
             "evidence_lines": ["Caller: Hello, I'm calling from Bank of America about your credit card offer..."]
         })
         
-        with patch('spam_classifier.AsyncOpenAI') as mock_openai_class:
+        with patch('src.spam_classifier.AsyncOpenAI') as mock_openai_class:
             mock_client = AsyncMock()
             mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
             mock_openai_class.return_value = mock_client
             
             # Set required environment variable
-            with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key", "OLLAMA_API_KEY": ""}):
                 result = await classify_transcript(transcript)
         
         assert isinstance(result, ClassificationResult)
@@ -87,7 +87,7 @@ class TestSpamClassifier:
             "evidence_lines": []
         })
         
-        with patch('spam_classifier.AsyncOpenAI') as mock_openai_class:
+        with patch('src.spam_classifier.AsyncOpenAI') as mock_openai_class:
             mock_client = AsyncMock()
             mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
             mock_openai_class.return_value = mock_client
@@ -109,13 +109,22 @@ class TestSpamClassifier:
         transcript = "Some test transcript"
         
         # Mock OpenAI to raise an exception
-        with patch('spam_classifier.AsyncOpenAI') as mock_openai_class:
+        mock_response_error = MagicMock()
+        mock_response_error.choices = [MagicMock()]
+        mock_response_error.choices[0].message.content = json.dumps({
+            "is_spam": False,
+            "confidence": 0.0,
+            "reason": "Error",
+            "evidence_lines": []
+        })
+        
+        with patch('src.spam_classifier.AsyncOpenAI') as mock_openai_class:
             mock_client = AsyncMock()
             mock_client.chat.completions.create = AsyncMock(side_effect=Exception("API Error"))
             mock_openai_class.return_value = mock_client
             
             # Set required environment variable
-            with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key", "OLLAMA_API_KEY": ""}):
                 result = await classify_transcript(transcript)
         
         # Should return a safe fallback result

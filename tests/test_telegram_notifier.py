@@ -7,8 +7,8 @@ import os
 # Add the project root to sys.path so we can import modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from telegram_notifier import send_spam_alert, _build_message, _build_message_html, _html_escape
-from spam_classifier import ClassificationResult
+from src.telegram_notifier import send_spam_alert, _build_message, _build_message_html, _html_escape
+from src.spam_classifier import ClassificationResult
 
 
 class TestTelegramNotifier:
@@ -126,7 +126,7 @@ class TestTelegramNotifier:
         mock_client = AsyncMock()
         mock_client.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
         
-        with patch('telegram_notifier.httpx.AsyncClient', return_value=mock_client):
+        with patch('src.telegram_notifier.httpx.AsyncClient', return_value=mock_client):
             with patch.dict(os.environ, {
                 "TELEGRAM_BOT_TOKEN": "test-token",
                 "TELEGRAM_CHAT_ID": "123456789"
@@ -145,7 +145,7 @@ class TestTelegramNotifier:
             side_effect=Exception("Network error")
         )
         
-        with patch('telegram_notifier.httpx.AsyncClient', return_value=mock_client):
+        with patch('src.telegram_notifier.httpx.AsyncClient', return_value=mock_client):
             with patch.dict(os.environ, {
                 "TELEGRAM_BOT_TOKEN": "test-token",
                 "TELEGRAM_CHAT_ID": "123456789"
