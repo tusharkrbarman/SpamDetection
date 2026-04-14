@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from src.spam_classifier import ClassificationResult
+from src.providers.base import ClassificationResult
 
 logger = logging.getLogger("telegram-notifier")
 logger.setLevel(logging.INFO)

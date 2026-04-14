@@ -6,12 +6,12 @@ from pathlib import Path
 from src.config import AppConfig, Provider
 from src.providers import (
     LLMProvider,
-    ClassificationResult,
     OpenRouterProvider,
     KiloProvider,
     OllamaProvider,
     OpenAIProvider,
 )
+from src.providers.base import ClassificationResult
 
 logger = logging.getLogger("spam-classifier")
 logger.setLevel(logging.INFO)
@@ -23,6 +23,9 @@ PROVIDER_MAP = {
     Provider.OLLAMA: OllamaProvider,
     Provider.OPENAI: OpenAIProvider,
 }
+
+# Re-export for backwards compatibility
+__all__ = ["classify_transcript", "ClassificationResult"]
 
 
 def _get_provider(config_path: Path | None = None) -> LLMProvider:

@@ -228,39 +228,83 @@ def load_instructions(path: str | Path = INSTRUCTIONS_PATH) -> str:
 
 
 def create_stt(config: AgentConfig):
+    """Create STT instance based on configuration."""
+    api_key = os.environ.get("SARVAM_API_KEY")
+    
     # Use mock STT if no Sarvam key
-    if not os.environ.get("SARVAM_API_KEY") or os.environ.get("SARVAM_API_KEY") == "your_sarvam_api_key":
+    if not api_key or api_key == "your_sarvam_api_key":
         logger.info("Using mock STT (no Sarvam API key)")
         return MockSTT()
-    # Real STT would go here
-    logger.info("Using real STT")
-    # from livekit.plugins import sarvam
-    # return sarvam.STT(...)
-    return MockSTT()  # Fallback for now
+    
+    # Real Sarvam STT
+    logger.info("Using Sarvam STT")
+    from livekit.plugins import sarvam
+    return sarvam.STT(
+        language=config.stt.language,
+        model="saarika:v2.5",
+        mode=config.stt.mode,
+        api_key=api_key,
+        high_vad_sensitivity=config.stt.high_vad_sensitivity,
+        sample_rate=config.tts.sample_rate,
+    )
 
 
 def create_llm(config: AgentConfig):
+    """Create LLM instance based on configuration."""
+    api_key = os.environ.get("OPENAI_API_KEY")
+    
     # Use mock LLM if no OpenAI key
-    if not os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY") == "your_openai_api_key":
+    if not api_key or api_key in ("your_openai_api_key", "your_openrouter_api_key"):
         logger.info("Using mock LLM (no OpenAI API key)")
         return MockLLM()
-    # Real LLM would go here
-    logger.info("Using real LLM")
-    # from livekit.plugins import openai as livekit_openai
-    # return livekit_openai.LLM(...)
-    return MockLLM()  # Fallback for now
+    
+    # Real OpenAI LLM (or OpenRouter via OpenAI-compatible API)
+    logger.info("Using OpenAI LLM")
+    from livekit.plugins import openai as livekit_openai
+    
+    # Check if using OpenRouter (identified by base URL or key prefix)
+    base_url = os.environ.get("OPENAI_API_BASE", "")
+    if base_url or (api_key and api_key.startswith("sk-or-")):
+        # Use OpenRouter or other OpenAI-compatible API
+        base_url = base_url or "https://openrouter.ai/api/v1"
+        return livekit_openai.LLM(
+            model=config.llm.model,
+            api_key=api_key,
+            base_url=base_url,
+            reasoning_effort=config.llm.reasoning_effort,
+            max_tokens=config.llm.max_output_tokens,
+        )
+    else:
+        # Use direct OpenAI API
+        return livekit_openai.LLM(
+            model=config.llm.model,
+            api_key=api_key,
+            reasoning_effort=config.llm.reasoning_effort,
+            max_tokens=config.llm.max_output_tokens,
+        )
 
 
 def create_tts(config: AgentConfig):
+    """Create TTS instance based on configuration."""
+    api_key = os.environ.get("SARVAM_API_KEY")
+    
     # Use mock TTS if no Sarvam key
-    if not os.environ.get("SARVAM_API_KEY") or os.environ.get("SARVAM_API_KEY") == "your_sarvam_api_key":
+    if not api_key or api_key == "your_sarvam_api_key":
         logger.info("Using mock TTS (no Sarvam API key)")
         return MockTTS()
-    # Real TTS would go here
-    logger.info("Using real TTS")
-    # from livekit.plugins import sarvam
-    # return sarvam.TTS(...)
-    return MockTTS()  # Fallback for now
+    
+    # Real Sarvam TTS
+    logger.info("Using Sarvam TTS")
+    from livekit.plugins import sarvam
+    return sarvam.TTS(
+        target_language_code=config.tts.target_language,
+        model="bulbul:v2",
+        speaker=config.tts.voice,
+        speech_sample_rate=config.tts.sample_rate,
+        pace=config.tts.pace,
+        temperature=config.tts.temperature,
+        api_key=api_key,
+    )
 
 
 def extract_transcript_from_chat_ctx(chat_ctx) -> str:
@@ -375,21 +419,50 @@ class VoiceAgent(Agent):
             transcript = extract_transcript_from_chat_ctx(self.chat_ctx)
             logger.info("Extracted transcript (%d chars)", len(transcript))
 
-            result = await mock_classify_transcript(transcript)
+            # Use real spam classifier
+            from src.spam_classifier import classify_transcript
+            result = await classify_transcript(transcript)
 
             if result.is_spam:
                 logger.warning("SPAM detected: %s (confidence: %.2f)", result.reason, result.confidence)
             else:
                 logger.info("Legitimate call: %s (confidence: %.2f)", result.reason, result.confidence)
 
-            sent = await mock_send_spam_alert(result)
-            if sent:
-                logger.info("Mock Telegram alert sent successfully")
+            # Use real Telegram notifier if configured, otherwise console output
+            from src.config import TelegramConfig
+            telegram_config = TelegramConfig.from_env()
+            
+            if telegram_config.enabled:
+                from src.telegram_notifier import send_spam_alert
+                sent = await send_spam_alert(result)
+                if sent:
+                    logger.info("Telegram alert sent successfully")
+                else:
+                    logger.warning("Failed to send Telegram alert")
             else:
-                logger.warning("Failed to send mock Telegram alert")
+                # Fall back to console output
+                await self._send_console_alert(result)
 
         except Exception as e:
             logger.error("Error in post-call processing: %s", e, exc_info=True)
+
+    async def _send_console_alert(self, result) -> None:
+        """Send alert to console (fallback when Telegram not configured)"""
+        print("\n" + "="*60)
+        print("🚨 SPAM ALERT 🚨" if result.is_spam else "✅ LEGITIMATE CALL")
+        print("="*60)
+        print(f"Spam Status: {'SPAM' if result.is_spam else 'LEGITIMATE'}")
+        print(f"Confidence: {result.confidence:.0%}")
+        print(f"Reason: {result.reason}")
+        if result.evidence_lines:
+            print("\nEvidence:")
+            for line in result.evidence_lines:
+                print(f"  • {line}")
+        print(f"\nTranscript ({len(result.full_transcript)} chars):")
+        print("-" * 40)
+        print(result.full_transcript)
+        print("-" * 40)
+        print("="*60 + "\n")
 
 
 async def entrypoint(ctx: JobContext):
