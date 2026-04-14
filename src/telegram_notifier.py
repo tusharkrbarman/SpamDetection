@@ -51,18 +51,15 @@ async def send_spam_alert(result: ClassificationResult) -> bool:
         return False
 
     message = _build_message(result)
+    html_message = _build_message_html(result)
     url = TELEGRAM_API_URL.format(token=token)
 
     payload = {
         "chat_id": chat_id,
-        "text": message,
-        "parse_mode": "MarkdownV2" if False else "HTML",
+        "text": html_message,
+        "parse_mode": "HTML",
         "disable_web_page_preview": True,
     }
-
-    html_message = _build_message_html(result)
-    payload["text"] = html_message
-    payload["parse_mode"] = "HTML"
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:

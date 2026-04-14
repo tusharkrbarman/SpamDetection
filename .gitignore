@@ -24,5 +24,8 @@ dist/
 .idea/
 .vscode/
 
+# OpenCode
+.opencode/
+
 # Local output
 *.log
