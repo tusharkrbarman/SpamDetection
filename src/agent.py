@@ -18,8 +18,9 @@ load_dotenv(override=True)
 logger = logging.getLogger("voice-agent")
 logger.setLevel(logging.INFO)
 
-CONFIG_PATH = Path(__file__).parent / "agent_config.toml"
-INSTRUCTIONS_PATH = Path(__file__).parent / "agent_instructions.md"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+CONFIG_PATH = PROJECT_ROOT / "configs" / "agent_config.toml"
+INSTRUCTIONS_PATH = PROJECT_ROOT / "docs" / "agent_instructions.md"
 
 
 def _clamp_pace(value: float | int | str | None) -> float:
@@ -108,6 +109,21 @@ class VoiceConfig:
     preemptive_generation: bool = True
     user_away_timeout: float = 12.0
     min_consecutive_speech_delay: float = 0.1
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> "VoiceConfig":
+        data = data or {}
+        return cls(
+            min_endpointing_delay=float(data.get("min_endpointing_delay", 0.2)),
+            max_endpointing_delay=float(data.get("max_endpointing_delay", 0.9)),
+            min_interruption_duration=float(data.get("min_interruption_duration", 0.7)),
+            min_interruption_words=int(data.get("min_interruption_words", 1)),
+            false_interruption_timeout=float(data.get("false_interruption_timeout", 1.5)),
+            resume_false_interruption=bool(data.get("resume_false_interruption", True)),
+            preemptive_generation=bool(data.get("preemptive_generation", True)),
+            user_away_timeout=float(data.get("user_away_timeout", 12.0)),
+            min_consecutive_speech_delay=float(data.get("min_consecutive_speech_delay", 0.1)),
+        )
 
 
 @dataclass(frozen=True)

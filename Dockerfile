@@ -35,6 +35,6 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
-RUN python "agent.py" download-files
+RUN python -m src.agent download-files
 
-CMD ["python", "agent.py", "start"]
+CMD ["python", "-m", "src.agent", "start"]

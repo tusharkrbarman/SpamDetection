@@ -3,7 +3,7 @@
 import logging
 from pathlib import Path
 
-from src.config import AppConfig, Provider
+from src.config import AppConfig, Provider, ProviderConfig
 from src.providers import (
     LLMProvider,
     OpenRouterProvider,
@@ -41,27 +41,27 @@ def _get_provider(config_path: Path | None = None) -> LLMProvider:
         ValueError: If no provider credentials are configured
     """
     app_config = AppConfig.load(config_path)
-    provider_config = app_config.spam_detection.get_available_provider()
+    provider_type = None
+    provider_config = None
+    for candidate in app_config.spam_detection.provider_priority:
+        candidate_config = ProviderConfig.from_env(candidate)
+        if candidate_config:
+            provider_type = candidate
+            provider_config = candidate_config
+            break
 
     if not provider_config:
         raise ValueError("No LLM API credentials configured")
 
-    # Determine provider type from API key prefix
-    if provider_config.api_key.startswith("sk-or-"):
-        provider_type = Provider.OPENROUTER
-    elif provider_config.api_key.startswith("eyJ"):
-        provider_type = Provider.KILO
-    elif provider_config.base_url and "ollama" in provider_config.base_url.lower():
-        provider_type = Provider.OLLAMA
-    else:
-        provider_type = Provider.OPENAI
-
     provider_class = PROVIDER_MAP[provider_type]
-    provider = provider_class(
-        api_key=provider_config.api_key,
-        base_url=provider_config.base_url,
-        model=provider_config.model,
-    )
+    if provider_type == Provider.OPENAI:
+        provider = provider_class(api_key=provider_config.api_key, model=provider_config.model)
+    else:
+        provider = provider_class(
+            api_key=provider_config.api_key,
+            base_url=provider_config.base_url,
+            model=provider_config.model,
+        )
 
     logger.info(f"Using {provider.get_provider_name()} with model: {provider.get_model_name()}")
     return provider

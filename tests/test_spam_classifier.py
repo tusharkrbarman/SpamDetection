@@ -55,7 +55,10 @@ class TestSpamClassifier:
             full_transcript=transcript
         )
 
-        with patch('src.spam_classifier.PROVIDER_MAP') as mock_map:
+        with patch.dict(os.environ, {
+            "OPENAI_API_KEY": "sk-or-test-key",
+            "OPENAI_API_BASE": "https://openrouter.ai/api/v1",
+        }), patch('src.spam_classifier.PROVIDER_MAP') as mock_map:
             mock_provider_class = MagicMock()
             mock_provider = MagicMock()
             mock_provider.classify = AsyncMock(return_value=mock_result)
@@ -89,7 +92,10 @@ class TestSpamClassifier:
             full_transcript=transcript
         )
 
-        with patch('src.spam_classifier.PROVIDER_MAP') as mock_map:
+        with patch.dict(os.environ, {
+            "OPENAI_API_KEY": "sk-or-test-key",
+            "OPENAI_API_BASE": "https://openrouter.ai/api/v1",
+        }), patch('src.spam_classifier.PROVIDER_MAP') as mock_map:
             mock_provider_class = MagicMock()
             mock_provider = MagicMock()
             mock_provider.classify = AsyncMock(return_value=mock_result)
@@ -114,7 +120,10 @@ class TestSpamClassifier:
         transcript = "Some test transcript"
 
         # Mock provider to raise an exception
-        with patch('src.spam_classifier.PROVIDER_MAP') as mock_map:
+        with patch.dict(os.environ, {
+            "OPENAI_API_KEY": "sk-or-test-key",
+            "OPENAI_API_BASE": "https://openrouter.ai/api/v1",
+        }), patch('src.spam_classifier.PROVIDER_MAP') as mock_map:
             mock_provider_class = MagicMock()
             mock_provider = MagicMock()
             mock_provider.classify = AsyncMock(side_effect=Exception("API Error"))

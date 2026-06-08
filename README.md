@@ -75,19 +75,19 @@ SPAM_CLASSIFICATION_MODEL=custom-model-name
 
 ## Files
 
-- `agent.py` - LiveKit worker entrypoint with spam detection pipeline
-- `spam_classifier.py` - Multi-provider transcript classifier
-- `telegram_notifier.py` - Telegram alert sender with formatted messages
-- `config.py` - Centralized configuration management
-- `providers/` - Provider abstraction layer
+- `src/agent.py` - LiveKit worker entrypoint with spam detection pipeline
+- `src/spam_classifier.py` - Multi-provider transcript classifier
+- `src/telegram_notifier.py` - Telegram alert sender with formatted messages
+- `src/config.py` - Centralized configuration management
+- `src/providers/` - Provider abstraction layer
   - `base.py` - Base provider interface
   - `openrouter.py` - OpenRouter provider
   - `kilo.py` - Kilo AI provider
   - `ollama.py` - Ollama provider
   - `openai.py` - OpenAI provider
 - `exceptions.py` - Structured error handling
-- `agent_config.toml` - Runtime settings for STT, LLM, TTS, voice, and spam detection
-- `agent_instructions.md` - Prompt for the stalling voice agent
+- `configs/agent_config.toml` - Runtime settings for STT, LLM, TTS, voice, and spam detection
+- `docs/agent_instructions.md` - Prompt for the stalling voice agent
 
 ## Local Setup
 
@@ -108,7 +108,7 @@ cp .env.example .env
 4. Start the worker:
 
 ```bash
-uv run python agent.py start
+uv run python -m src.agent start
 ```
 
 ## Telegram Setup
@@ -176,12 +176,12 @@ TELEGRAM_CHAT_ID=your_telegram_chat_id
 
 ## Configuration
 
-- `agent_config.toml` - Tune STT, LLM, TTS, voice behavior, and spam detection settings
+- `configs/agent_config.toml` - Tune STT, LLM, TTS, voice behavior, and spam detection settings
   - `[spam_detection].call_duration_seconds` - How long to keep the caller talking (default: 12)
   - `[spam_detection].provider_priority` - Provider priority order (default: ["openrouter", "kilo", "ollama", "openai"])
   - `[spam_detection].max_transcript_length` - Maximum transcript length in characters (default: 100000)
   - `[spam_detection].llm_timeout` - LLM API timeout in seconds (default: 30.0)
-- `agent_instructions.md` - Change the stalling agent behavior
+- `docs/agent_instructions.md` - Change the stalling agent behavior
 
 ## Telephony Setup
 
@@ -209,7 +209,7 @@ Incoming Call
     ↓
 LiveKit Room
     ↓
-VoiceAgent (agent.py)
+VoiceAgent (src/agent.py)
     ├─→ STT (Sarvam/Mock) → Transcript
     ├─→ LLM (OpenAI/Mock) → Stalling responses
     └─→ TTS (Sarvam/Mock) → Audio output

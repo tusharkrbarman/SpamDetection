@@ -120,8 +120,8 @@ class TestTelegramNotifier:
         result = self._create_test_result(is_spam=True, confidence=0.9)
         
         # Mock httpx.AsyncClient
-        mock_response = AsyncMock()
-        mock_response.raise_for_status = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
         
         mock_client = AsyncMock()
         mock_client.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
