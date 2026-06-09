@@ -169,4 +169,6 @@ Audio → STT → Text → LLM → Response → TTS → Audio (loop for 12s)
 | Classification model | `agent_config.toml` | gpt-4o-mini | Model for spam detection |
 | Stalling behavior | `agent_instructions.md` | - | Prompt for voice agent |
 | STT language | `agent_config.toml` | unknown | Auto-detect caller language |
-| TTS voice | `agent_config.toml` | ajay | Voice for agent responses |
+| STT model | `agent_config.toml` | saaras:v3 | Sarvam speech-to-text model |
+| TTS model | `agent_config.toml` | bulbul:v3 | Sarvam text-to-speech model |
+| TTS voice | `agent_config.toml` | Aditya | Voice for agent responses |

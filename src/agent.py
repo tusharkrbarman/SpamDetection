@@ -41,6 +41,7 @@ def _clamp_temperature(value: float | int | str | None) -> float:
 
 @dataclass(frozen=True)
 class STTConfig:
+    model: str = "saaras:v3"
     language: str = "unknown"
     mode: str = "transcribe"
     high_vad_sensitivity: bool = True
@@ -49,6 +50,7 @@ class STTConfig:
     def from_dict(cls, data: dict[str, Any] | None) -> "STTConfig":
         data = data or {}
         return cls(
+            model=str(data.get("model", "saaras:v3")),
             language=str(data.get("language", "unknown")),
             mode=str(data.get("mode", "transcribe")),
             high_vad_sensitivity=bool(data.get("high_vad_sensitivity", True)),
@@ -80,7 +82,8 @@ class LLMConfig:
 
 @dataclass(frozen=True)
 class TTSConfig:
-    voice: str = "ajay"
+    model: str = "bulbul:v3"
+    voice: str = "Aditya"
     pace: float = 1.0
     temperature: float = 0.35
     sample_rate: int = 16000
@@ -90,7 +93,8 @@ class TTSConfig:
     def from_dict(cls, data: dict[str, Any] | None) -> "TTSConfig":
         data = data or {}
         return cls(
-            voice=str(data.get("voice", "ajay")),
+            model=str(data.get("model", "bulbul:v3")),
+            voice=str(data.get("voice", "Aditya")),
             pace=_clamp_pace(data.get("pace", 1.0)),
             temperature=_clamp_temperature(data.get("temperature", 0.35)),
             sample_rate=int(data.get("sample_rate", 16000)),
@@ -257,7 +261,7 @@ def create_stt(config: AgentConfig):
     from livekit.plugins import sarvam
     return sarvam.STT(
         language=config.stt.language,
-        model="saarika:v2.5",
+        model=config.stt.model,
         mode=config.stt.mode,
         api_key=api_key,
         high_vad_sensitivity=config.stt.high_vad_sensitivity,
@@ -300,7 +304,7 @@ def create_tts(config: AgentConfig):
     from livekit.plugins import sarvam
     return sarvam.TTS(
         target_language_code=config.tts.target_language,
-        model="bulbul:v2",
+        model=config.tts.model,
         speaker=config.tts.voice,
         speech_sample_rate=config.tts.sample_rate,
         pace=config.tts.pace,

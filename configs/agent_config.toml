@@ -1,4 +1,5 @@
 [stt]
+model = "saaras:v3"
 language = "unknown"
 mode = "transcribe"
 high_vad_sensitivity = true
@@ -11,7 +12,8 @@ max_output_tokens = 96
 use_websocket = true
 
 [tts]
-voice = "ajay"
+model = "bulbul:v3"
+voice = "Aditya"
 pace = 1.0
 temperature = 0.35
 sample_rate = 16000
