@@ -337,6 +337,29 @@ def extract_transcript_from_chat_ctx(chat_ctx) -> str:
     return "\n".join(lines)
 
 
+def extract_caller_number_from_room(room) -> str | None:
+    participants = getattr(room, "remote_participants", None)
+    if not participants:
+        return None
+
+    if isinstance(participants, dict):
+        participant_iterable = participants.values()
+    else:
+        participant_iterable = participants
+
+    for participant in participant_iterable:
+        attributes = getattr(participant, "attributes", None) or {}
+        number = (
+            attributes.get("sip.phoneNumber")
+            or attributes.get("phone_number")
+            or attributes.get("caller_number")
+        )
+        if number:
+            return str(number)
+
+    return None
+
+
 class MockClassificationResult:
     def __init__(self, is_spam: bool, confidence: float, reason: str, evidence_lines: list[str], transcript: str):
         self.is_spam = is_spam
@@ -401,10 +424,12 @@ class VoiceAgent(Agent):
         *,
         config: AgentConfig | None = None,
         instructions: str | None = None,
+        caller_number: str | None = None,
         call_ended_event: asyncio.Event | None = None,
     ) -> None:
         resolved_config = config or load_config()
         self._config = resolved_config
+        self._caller_number = caller_number
         self._call_ended_event = call_ended_event or asyncio.Event()
         super().__init__(
             instructions=instructions or load_instructions(),
@@ -450,7 +475,7 @@ class VoiceAgent(Agent):
             
             if telegram_config.enabled:
                 from src.telegram_notifier import send_spam_alert
-                sent = await send_spam_alert(result)
+                sent = await send_spam_alert(result, caller_number=self._caller_number)
                 if sent:
                     logger.info("Telegram alert sent successfully")
                 else:
@@ -487,6 +512,9 @@ async def entrypoint(ctx: JobContext):
     config = load_config()
     instructions = load_instructions()
     call_ended_event = asyncio.Event()
+    caller_number = extract_caller_number_from_room(ctx.room)
+    if caller_number:
+        logger.info("Detected caller number from room attributes: %s", caller_number)
 
     vad = ctx.proc.userdata.get("vad")
     if vad is None:
@@ -514,7 +542,12 @@ async def entrypoint(ctx: JobContext):
         tts_text_transforms=["filter_markdown", "filter_emoji"],
     )
 
-    agent = VoiceAgent(config=config, instructions=instructions, call_ended_event=call_ended_event)
+    agent = VoiceAgent(
+        config=config,
+        instructions=instructions,
+        caller_number=caller_number,
+        call_ended_event=call_ended_event,
+    )
 
     await session.start(
         agent=agent,

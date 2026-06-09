@@ -16,7 +16,12 @@ sys.modules['livekit.plugins'] = MagicMock()
 sys.modules['livekit.plugins.noise_cancellation'] = MagicMock()
 sys.modules['livekit.plugins.silero'] = MagicMock()
 
-from src.agent import VoiceAgent, extract_transcript_from_chat_ctx, SpamDetectionConfig
+from src.agent import (
+    VoiceAgent,
+    extract_caller_number_from_room,
+    extract_transcript_from_chat_ctx,
+    SpamDetectionConfig,
+)
 
 
 class MockChatMessage:
@@ -28,6 +33,16 @@ class MockChatMessage:
 class MockChatContext:
     def __init__(self, messages):
         self.messages = messages
+
+
+class MockParticipant:
+    def __init__(self, attributes):
+        self.attributes = attributes
+
+
+class MockRoom:
+    def __init__(self, participants):
+        self.remote_participants = participants
 
 
 class TestAgentFunctionality:
@@ -98,6 +113,22 @@ class TestAgentFunctionality:
         
         expected = "Agent: Hello\nAgent: How can I help?"
         assert transcript == expected
+
+    def test_extract_caller_number_from_room(self):
+        """Test caller number extraction from LiveKit SIP attributes"""
+        room = MockRoom(
+            {
+                "caller": MockParticipant({"sip.phoneNumber": "+919876543210"}),
+            }
+        )
+
+        assert extract_caller_number_from_room(room) == "+919876543210"
+
+    def test_extract_caller_number_from_room_missing(self):
+        """Test caller number extraction when no SIP number is present"""
+        room = MockRoom({"caller": MockParticipant({"sip.callID": "abc"})})
+
+        assert extract_caller_number_from_room(room) is None
     
     def test_spam_detection_config_defaults(self):
         """Test SpamDetectionConfig default values"""

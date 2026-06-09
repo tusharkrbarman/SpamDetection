@@ -78,6 +78,8 @@ SPAM_CLASSIFICATION_MODEL=custom-model-name
 - `src/agent.py` - LiveKit worker entrypoint with spam detection pipeline
 - `src/spam_classifier.py` - Multi-provider transcript classifier
 - `src/telegram_notifier.py` - Telegram alert sender with formatted messages
+- `src/trai_report.py` - TRAI complaint draft and SMS handoff helpers
+- `src/report_server.py` - Optional confirmation page for Telegram report buttons
 - `src/config.py` - Centralized configuration management
 - `src/providers/` - Provider abstraction layer
   - `base.py` - Base provider interface
@@ -123,6 +125,28 @@ uv run python -m src.agent start
 TELEGRAM_BOT_TOKEN=1234567890:ABCdef...
 TELEGRAM_CHAT_ID=123456789
 ```
+
+## TRAI Reporting Handoff
+
+For spam calls, Telegram alerts now include a TRAI complaint draft in the SMS format:
+
+```text
+Reason, caller-or-sender, dd/mm/yy
+```
+
+The user still reviews and sends the SMS to `1909`; the backend does not silently send SMS from a SIM.
+
+To show a Telegram `Report to TRAI` button, expose the optional confirmation server over HTTPS and set `TRAI_REPORT_CONFIRM_URL`:
+
+```bash
+uv run python -m src.report_server
+```
+
+```env
+TRAI_REPORT_CONFIRM_URL=https://your-public-domain.example/report
+```
+
+The button opens the confirmation page, which then opens the phone SMS composer with `1909` and the complaint draft prefilled. A future Android companion app can replace this confirmation server/SMS handoff without changing the classifier.
 
 ## Environment Variables
 
@@ -172,6 +196,13 @@ SPAM_CLASSIFICATION_MODEL=custom-model-name
 ```
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 TELEGRAM_CHAT_ID=your_telegram_chat_id
+```
+
+### Optional TRAI Reporting
+```
+TRAI_REPORT_CONFIRM_URL=https://your-public-domain.example/report
+TRAI_REPORT_SERVER_HOST=127.0.0.1
+TRAI_REPORT_SERVER_PORT=8787
 ```
 
 ## Configuration

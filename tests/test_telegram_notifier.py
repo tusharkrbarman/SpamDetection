@@ -7,7 +7,13 @@ import os
 # Add the project root to sys.path so we can import modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.telegram_notifier import send_spam_alert, _build_message, _build_message_html, _html_escape
+from src.telegram_notifier import (
+    send_spam_alert,
+    _build_message,
+    _build_message_html,
+    _build_reply_markup,
+    _html_escape,
+)
 from src.spam_classifier import ClassificationResult
 
 
@@ -93,6 +99,28 @@ class TestTelegramNotifier:
         assert "<i>• Evidence line 1</i>" in html_message
         assert "<i>• Evidence line 2</i>" in html_message
         assert "<code>Test transcript" in html_message
+        assert "<b>TRAI complaint draft:</b>" in html_message
+        assert "To: <code>1909</code>" in html_message
+
+    def test_build_reply_markup_without_report_url(self):
+        """Test that no Telegram button is sent without a report URL."""
+        result = self._create_test_result(is_spam=True, confidence=0.8)
+
+        with patch.dict(os.environ, {"TRAI_REPORT_CONFIRM_URL": ""}):
+            assert _build_reply_markup(result) is None
+
+    def test_build_reply_markup_with_report_url(self):
+        """Test Telegram report button payload."""
+        result = self._create_test_result(is_spam=True, confidence=0.8)
+
+        with patch.dict(os.environ, {"TRAI_REPORT_CONFIRM_URL": "https://example.com/report"}):
+            markup = _build_reply_markup(result, caller_number="+91 98765 43210")
+
+        assert markup is not None
+        button = markup["inline_keyboard"][0][0]
+        assert button["text"] == "Report to TRAI"
+        assert button["url"].startswith("https://example.com/report?to=1909&body=")
+        assert "%2B919876543210" in button["url"]
     
     @pytest.mark.asyncio
     async def test_send_spam_alert_missing_credentials(self):
@@ -129,10 +157,13 @@ class TestTelegramNotifier:
         with patch('src.telegram_notifier.httpx.AsyncClient', return_value=mock_client):
             with patch.dict(os.environ, {
                 "TELEGRAM_BOT_TOKEN": "test-token",
-                "TELEGRAM_CHAT_ID": "123456789"
+                "TELEGRAM_CHAT_ID": "123456789",
+                "TRAI_REPORT_CONFIRM_URL": "https://example.com/report",
             }):
                 sent = await send_spam_alert(result)
                 assert sent == True
+                payload = mock_client.__aenter__.return_value.post.call_args.kwargs["json"]
+                assert "reply_markup" in payload
     
     @pytest.mark.asyncio
     async def test_send_spam_alert_http_error(self):
