@@ -4,13 +4,7 @@ import logging
 from pathlib import Path
 
 from src.config import AppConfig, Provider, ProviderConfig
-from src.providers import (
-    LLMProvider,
-    OpenRouterProvider,
-    KiloProvider,
-    OllamaProvider,
-    OpenAIProvider,
-)
+from src.providers import LLMProvider, OpenAIProvider
 from src.providers.base import ClassificationResult
 
 logger = logging.getLogger("spam-classifier")
@@ -18,9 +12,6 @@ logger.setLevel(logging.INFO)
 
 # Provider mapping
 PROVIDER_MAP = {
-    Provider.OPENROUTER: OpenRouterProvider,
-    Provider.KILO: KiloProvider,
-    Provider.OLLAMA: OllamaProvider,
     Provider.OPENAI: OpenAIProvider,
 }
 
@@ -54,14 +45,7 @@ def _get_provider(config_path: Path | None = None) -> LLMProvider:
         raise ValueError("No LLM API credentials configured")
 
     provider_class = PROVIDER_MAP[provider_type]
-    if provider_type == Provider.OPENAI:
-        provider = provider_class(api_key=provider_config.api_key, model=provider_config.model)
-    else:
-        provider = provider_class(
-            api_key=provider_config.api_key,
-            base_url=provider_config.base_url,
-            model=provider_config.model,
-        )
+    provider = provider_class(api_key=provider_config.api_key, model=provider_config.model)
 
     logger.info(f"Using {provider.get_provider_name()} with model: {provider.get_model_name()}")
     return provider

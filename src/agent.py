@@ -270,34 +270,20 @@ def create_llm(config: AgentConfig):
     api_key = os.environ.get("OPENAI_API_KEY")
     
     # Use mock LLM if no OpenAI key
-    if not api_key or api_key in ("your_openai_api_key", "your_openrouter_api_key"):
+    if not api_key or api_key == "your_openai_api_key" or api_key.startswith("sk-or-"):
         logger.info("Using mock LLM (no OpenAI API key)")
         return MockLLM()
     
-    # Real OpenAI LLM (or OpenRouter via OpenAI-compatible API)
+    # Real OpenAI LLM
     logger.info("Using OpenAI LLM")
     from livekit.plugins import openai as livekit_openai
     
-    # Check if using OpenRouter (identified by base URL or key prefix)
-    base_url = os.environ.get("OPENAI_API_BASE", "")
-    if base_url or (api_key and api_key.startswith("sk-or-")):
-        # Use OpenRouter or other OpenAI-compatible API
-        base_url = base_url or "https://openrouter.ai/api/v1"
-        return livekit_openai.LLM(
-            model=config.llm.model,
-            api_key=api_key,
-            base_url=base_url,
-            reasoning_effort=config.llm.reasoning_effort,
-            max_tokens=config.llm.max_output_tokens,
-        )
-    else:
-        # Use direct OpenAI API
-        return livekit_openai.LLM(
-            model=config.llm.model,
-            api_key=api_key,
-            reasoning_effort=config.llm.reasoning_effort,
-            max_tokens=config.llm.max_output_tokens,
-        )
+    return livekit_openai.LLM(
+        model=config.llm.model,
+        api_key=api_key,
+        reasoning_effort=config.llm.reasoning_effort,
+        max_tokens=config.llm.max_output_tokens,
+    )
 
 
 def create_tts(config: AgentConfig):

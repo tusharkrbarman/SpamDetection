@@ -195,15 +195,13 @@ class TestConfigIntegration:
         config = AppConfig.load()
 
         assert config.spam_detection.call_duration_seconds == 12.0
-        assert len(config.spam_detection.provider_priority) == 4
-        assert Provider.OPENROUTER in config.spam_detection.provider_priority
+        assert config.spam_detection.provider_priority == [Provider.OPENAI]
 
     def test_provider_priority_order(self):
-        """Test provider priority is in correct order."""
+        """Test ChatGPT/OpenAI is the only configured provider."""
         config = AppConfig.load()
 
-        expected_order = [Provider.OPENROUTER, Provider.KILO, Provider.OLLAMA, Provider.OPENAI]
-        assert config.spam_detection.provider_priority == expected_order
+        assert config.spam_detection.provider_priority == [Provider.OPENAI]
 
     def test_telegram_config_disabled(self):
         """Test Telegram config is disabled without credentials."""

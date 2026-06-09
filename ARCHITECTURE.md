@@ -68,12 +68,12 @@ The Spam Call Detection System is a LiveKit-based voice agent that answers calls
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  Provider Abstraction (providers/)                       │  │
 │  │  ┌──────────────┐  ┌──────────────┐                     │  │
-│  │  │ OpenRouter   │  │  Kilo AI     │                     │  │
-│  │  │ (Free)       │  │  (Free)       │                     │  │
+│  │  │ OpenAI       │  │  ChatGPT      │                     │  │
+│  │  │ Provider     │  │  Only         │                     │  │
 │  │  └──────────────┘  └──────────────┘                     │  │
 │  │  ┌──────────────┐  ┌──────────────┐                     │  │
-│  │  │  Ollama      │  │  OpenAI      │                     │  │
-│  │  │ (Free)       │  │  (Paid)       │                     │  │
+│  │  │ Classification result     │                     │  │
+│  │  │ is_spam/confidence/reason │                     │  │
 │  │  └──────────────┘  └──────────────┘                     │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────────┐  │
@@ -138,19 +138,16 @@ Audio Input → STT → Transcript → LLM → Response → TTS → Audio Output
 
 ### 2. SpamClassifier (`spam_classifier.py`)
 
-**Purpose**: Classifies transcripts as spam or legitimate using LLM providers.
+**Purpose**: Classifies transcripts as spam or legitimate using OpenAI/ChatGPT.
 
 **Key Components**:
 - **Config Management**: Loads and validates configuration
-- **Provider Selection**: Chooses best available provider
-- **Classification**: Calls provider to classify transcript
+- **Provider Selection**: Uses OpenAIProvider only
+- **Classification**: Calls OpenAI to classify transcript
 - **Error Handling**: Graceful fallback on errors
 
-**Provider Priority**:
-1. OpenRouter (free models)
-2. Kilo AI (free models)
-3. Ollama (free models)
-4. OpenAI (paid models)
+**Provider**:
+1. OpenAI / ChatGPT
 
 **Data Flow**:
 ```
@@ -159,7 +156,7 @@ Transcript → Config Validation → Provider Selection → Classification → R
 
 ### 3. Provider Abstraction (`providers/`)
 
-**Purpose**: Abstract interface for LLM providers with automatic fallback.
+**Purpose**: Abstract interface for the OpenAI classification provider.
 
 **Base Interface** (`base.py`):
 ```python
@@ -170,15 +167,11 @@ class LLMProvider(ABC):
     def get_provider_name() -> str
 ```
 
-**Implementations**:
-- **OpenRouterProvider**: Free models (Gemma 4 31B)
-- **KiloProvider**: Free models (Nemotron 3 Super)
-- **OllamaProvider**: Free models (Llama 3.2)
-- **OpenAIProvider**: Paid models (GPT-4o-mini)
+**Implementation**:
+- **OpenAIProvider**: OpenAI/ChatGPT classification
 
 **Benefits**:
-- Easy to add new providers
-- Consistent interface across providers
+- Clear provider boundary
 - Better testability with mocks
 - Clear separation of concerns
 

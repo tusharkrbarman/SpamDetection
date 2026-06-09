@@ -9,9 +9,6 @@ from typing import Any
 
 class Provider(str, Enum):
     """Available LLM providers."""
-    OPENROUTER = "openrouter"
-    KILO = "kilo"
-    OLLAMA = "ollama"
     OPENAI = "openai"
 
 
@@ -32,28 +29,7 @@ class ProviderConfig:
         Returns:
             ProviderConfig if credentials are available, None otherwise
         """
-        if provider == Provider.OPENROUTER:
-            api_key = os.environ.get("OPENAI_API_KEY", "")
-            base_url = os.environ.get("OPENAI_API_BASE", "")
-            model = os.environ.get("SPAM_CLASSIFICATION_MODEL")
-            if api_key.startswith("sk-or-") and base_url:
-                return cls(api_key=api_key, base_url=base_url, model=model)
-
-        elif provider == Provider.KILO:
-            api_key = os.environ.get("KILO_API_KEY", "")
-            base_url = os.environ.get("KILO_API_BASE", "")
-            model = os.environ.get("SPAM_CLASSIFICATION_MODEL")
-            if api_key.startswith("eyJ") and base_url:
-                return cls(api_key=api_key, base_url=base_url, model=model)
-
-        elif provider == Provider.OLLAMA:
-            api_key = os.environ.get("OLLAMA_API_KEY", "")
-            base_url = os.environ.get("OLLAMA_API_BASE", "")
-            model = os.environ.get("SPAM_CLASSIFICATION_MODEL")
-            if api_key and base_url:
-                return cls(api_key=api_key, base_url=base_url, model=model)
-
-        elif provider == Provider.OPENAI:
+        if provider == Provider.OPENAI:
             api_key = os.environ.get("OPENAI_API_KEY", "")
             model = os.environ.get("SPAM_CLASSIFICATION_MODEL")
             if api_key and not api_key.startswith("sk-or-"):
@@ -76,7 +52,7 @@ class SpamDetectionConfig:
             object.__setattr__(
                 self,
                 "provider_priority",
-                [Provider.OPENROUTER, Provider.KILO, Provider.OLLAMA, Provider.OPENAI],
+                [Provider.OPENAI],
             )
 
     @classmethod
@@ -90,14 +66,9 @@ class SpamDetectionConfig:
             SpamDetectionConfig instance
         """
         data = data or {}
-        provider_priority = data.get("provider_priority")
-        if provider_priority:
-            # Convert string list to Provider enum
-            provider_priority = [Provider(p) for p in provider_priority]
-
         return cls(
             call_duration_seconds=float(data.get("call_duration_seconds", 12.0)),
-            provider_priority=provider_priority,
+            provider_priority=[Provider.OPENAI],
             max_transcript_length=int(data.get("max_transcript_length", 100_000)),
             llm_timeout=float(data.get("llm_timeout", 30.0)),
         )

@@ -7,11 +7,7 @@ LiveKit voice agent that answers unknown calls, stalls the caller for 12 seconds
 - **LiveKit Agents** - Voice call runtime
 - **Sarvam `saaras:v3`** - Speech-to-text (STT)
 - **OpenAI `gpt-5.4`** - Real-time conversation (stalling)
-- **Multi-Provider LLM** - Spam classification with automatic fallback:
-  - **OpenRouter** (free models: Gemma 4 31B)
-  - **Kilo AI** (free models: Nemotron 3 Super)
-  - **Ollama** (free models: Llama 3.2)
-  - **OpenAI** (paid models: GPT-4o-mini)
+- **OpenAI `gpt-4o-mini`** - Spam classification
 - **Sarvam `bulbul:v3`** - Text-to-speech (TTS)
 - **Telegram Bot API** - Spam alerts with evidence
 
@@ -28,46 +24,17 @@ LiveKit voice agent that answers unknown calls, stalls the caller for 12 seconds
    - Exact transcript lines that indicate spam (highlighted)
    - Full transcript for reference
 
-## Multi-Provider Support
+## ChatGPT/OpenAI Support
 
-The system automatically selects the best available LLM provider based on your configured API keys:
+The system uses OpenAI/ChatGPT only for both stalling conversation and spam classification.
 
-### Provider Priority (in order):
-1. **OpenRouter** - Free models (Gemma 4 31B)
-2. **Kilo AI** - Free models (Nemotron 3 Super)
-3. **Ollama** - Free models (Llama 3.2)
-4. **OpenAI** - Paid models (GPT-4o-mini)
-
-### Configuration
-
-The system checks for provider credentials in this order:
-
-**OpenRouter:**
 ```bash
-OPENAI_API_KEY=sk-or-...  # Must start with "sk-or-"
-OPENAI_API_BASE=https://openrouter.ai/api/v1
-```
-
-**Kilo AI:**
-```bash
-KILO_API_KEY=eyJ...  # Must start with "eyJ"
-KILO_API_BASE=https://api.kilo.ai
-```
-
-**Ollama:**
-```bash
-OLLAMA_API_KEY=your-ollama-key
-OLLAMA_API_BASE=http://localhost:11434
-```
-
-**OpenAI:**
-```bash
-OPENAI_API_KEY=sk-...  # Must NOT start with "sk-or-"
+OPENAI_API_KEY=sk-...
 ```
 
 ### Custom Model Selection
 
-You can override the default model for any provider:
+You can override the default spam classification model:
 
 ```bash
 SPAM_CLASSIFICATION_MODEL=custom-model-name
@@ -76,16 +43,13 @@ SPAM_CLASSIFICATION_MODEL=custom-model-name
 ## Files
 
 - `src/agent.py` - LiveKit worker entrypoint with spam detection pipeline
-- `src/spam_classifier.py` - Multi-provider transcript classifier
+- `src/spam_classifier.py` - OpenAI transcript classifier
 - `src/telegram_notifier.py` - Telegram alert sender with formatted messages
 - `src/trai_report.py` - TRAI complaint draft and SMS handoff helpers
 - `src/report_server.py` - Optional confirmation page for Telegram report buttons
 - `src/config.py` - Centralized configuration management
 - `src/providers/` - Provider abstraction layer
   - `base.py` - Base provider interface
-  - `openrouter.py` - OpenRouter provider
-  - `kilo.py` - Kilo AI provider
-  - `ollama.py` - Ollama provider
   - `openai.py` - OpenAI provider
 - `exceptions.py` - Structured error handling
 - `configs/agent_config.toml` - Runtime settings for STT, LLM, TTS, voice, and spam detection
@@ -162,27 +126,7 @@ LIVEKIT_API_SECRET=your_livekit_api_secret
 SARVAM_API_KEY=your_sarvam_api_key
 ```
 
-### LLM Providers (configure at least one)
-
-**Option 1: OpenRouter (Free)**
-```
-OPENAI_API_KEY=sk-or-your_openrouter_api_key
-OPENAI_API_BASE=https://openrouter.ai/api/v1
-```
-
-**Option 2: Kilo AI (Free)**
-```
-KILO_API_KEY=eyJyour_kilo_api_key
-KILO_API_BASE=https://api.kilo.ai
-```
-
-**Option 3: Ollama (Free)**
-```
-OLLAMA_API_KEY=your_ollama_api_key
-OLLAMA_API_BASE=http://localhost:11434
-```
-
-**Option 4: OpenAI (Paid)**
+### OpenAI / ChatGPT
 ```
 OPENAI_API_KEY=sk-your_openai_api_key
 ```
@@ -209,7 +153,6 @@ TRAI_REPORT_SERVER_PORT=8787
 
 - `configs/agent_config.toml` - Tune STT, LLM, TTS, voice behavior, and spam detection settings
   - `[spam_detection].call_duration_seconds` - How long to keep the caller talking (default: 12)
-  - `[spam_detection].provider_priority` - Provider priority order (default: ["openrouter", "kilo", "ollama", "openai"])
   - `[spam_detection].max_transcript_length` - Maximum transcript length in characters (default: 100000)
   - `[spam_detection].llm_timeout` - LLM API timeout in seconds (default: 30.0)
 - `docs/agent_instructions.md` - Change the stalling agent behavior
@@ -252,10 +195,7 @@ Extract Transcript
 SpamClassifier (spam_classifier.py)
     ├─→ Config (config.py)
     ├─→ Provider Selection
-    │   ├─→ OpenRouter (free)
-    │   ├─→ Kilo AI (free)
-    │   ├─→ Ollama (free)
-    │   └─→ OpenAI (paid)
+    │   └─→ OpenAIProvider
     └─→ ClassificationResult
     ↓
 TelegramNotifier (telegram_notifier.py)

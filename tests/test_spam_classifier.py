@@ -56,14 +56,13 @@ class TestSpamClassifier:
         )
 
         with patch.dict(os.environ, {
-            "OPENAI_API_KEY": "sk-or-test-key",
-            "OPENAI_API_BASE": "https://openrouter.ai/api/v1",
+            "OPENAI_API_KEY": "sk-test-key",
         }), patch('src.spam_classifier.PROVIDER_MAP') as mock_map:
             mock_provider_class = MagicMock()
             mock_provider = MagicMock()
             mock_provider.classify = AsyncMock(return_value=mock_result)
-            mock_provider.get_provider_name = MagicMock(return_value="openrouter")
-            mock_provider.get_model_name = MagicMock(return_value="google/gemma-4-31b-it:free")
+            mock_provider.get_provider_name = MagicMock(return_value="openai")
+            mock_provider.get_model_name = MagicMock(return_value="gpt-4o-mini")
             mock_provider.close = AsyncMock()
             mock_provider_class.return_value = mock_provider
             mock_map.__getitem__.return_value = mock_provider_class
@@ -93,14 +92,13 @@ class TestSpamClassifier:
         )
 
         with patch.dict(os.environ, {
-            "OPENAI_API_KEY": "sk-or-test-key",
-            "OPENAI_API_BASE": "https://openrouter.ai/api/v1",
+            "OPENAI_API_KEY": "sk-test-key",
         }), patch('src.spam_classifier.PROVIDER_MAP') as mock_map:
             mock_provider_class = MagicMock()
             mock_provider = MagicMock()
             mock_provider.classify = AsyncMock(return_value=mock_result)
-            mock_provider.get_provider_name = MagicMock(return_value="openrouter")
-            mock_provider.get_model_name = MagicMock(return_value="google/gemma-4-31b-it:free")
+            mock_provider.get_provider_name = MagicMock(return_value="openai")
+            mock_provider.get_model_name = MagicMock(return_value="gpt-4o-mini")
             mock_provider.close = AsyncMock()
             mock_provider_class.return_value = mock_provider
             mock_map.__getitem__.return_value = mock_provider_class
@@ -121,14 +119,13 @@ class TestSpamClassifier:
 
         # Mock provider to raise an exception
         with patch.dict(os.environ, {
-            "OPENAI_API_KEY": "sk-or-test-key",
-            "OPENAI_API_BASE": "https://openrouter.ai/api/v1",
+            "OPENAI_API_KEY": "sk-test-key",
         }), patch('src.spam_classifier.PROVIDER_MAP') as mock_map:
             mock_provider_class = MagicMock()
             mock_provider = MagicMock()
             mock_provider.classify = AsyncMock(side_effect=Exception("API Error"))
-            mock_provider.get_provider_name = MagicMock(return_value="openrouter")
-            mock_provider.get_model_name = MagicMock(return_value="google/gemma-4-31b-it:free")
+            mock_provider.get_provider_name = MagicMock(return_value="openai")
+            mock_provider.get_model_name = MagicMock(return_value="gpt-4o-mini")
             mock_provider.close = AsyncMock()
             mock_provider_class.return_value = mock_provider
             mock_map.__getitem__.return_value = mock_provider_class
