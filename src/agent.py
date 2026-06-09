@@ -429,7 +429,7 @@ class VoiceAgent(Agent):
         )
 
     async def on_enter(self) -> None:
-        self.session.say(
+        await self.session.say(
             "Hello, this line is open. How can I help you?",
             allow_interruptions=True,
             add_to_chat_ctx=True,
