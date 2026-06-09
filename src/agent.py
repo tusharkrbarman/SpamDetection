@@ -15,6 +15,7 @@ from livekit.plugins import noise_cancellation, silero
 
 load_dotenv(override=True)
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
 logger.setLevel(logging.INFO)
 
@@ -82,8 +83,8 @@ class LLMConfig:
 
 @dataclass(frozen=True)
 class TTSConfig:
-    model: str = "bulbul:v3"
-    voice: str = "aditya"
+    model: str = "bulbul:v2"
+    voice: str = "abhilash"
     pace: float = 1.0
     temperature: float = 0.35
     sample_rate: int = 16000
@@ -93,8 +94,8 @@ class TTSConfig:
     def from_dict(cls, data: dict[str, Any] | None) -> "TTSConfig":
         data = data or {}
         return cls(
-            model=str(data.get("model", "bulbul:v3")),
-            voice=str(data.get("voice", "aditya")),
+            model=str(data.get("model", "bulbul:v2")),
+            voice=str(data.get("voice", "abhilash")),
             pace=_clamp_pace(data.get("pace", 1.0)),
             temperature=_clamp_temperature(data.get("temperature", 0.35)),
             sample_rate=int(data.get("sample_rate", 16000)),
@@ -301,27 +302,36 @@ def create_tts(config: AgentConfig):
     
     # Real Sarvam TTS
     logger.info("Using Sarvam TTS model=%s speaker=%s", config.tts.model, config.tts.voice)
-    from livekit.plugins import sarvam
-    return sarvam.TTS(
-        target_language_code=config.tts.target_language,
-        model=config.tts.model,
-        speaker=config.tts.voice,
-        speech_sample_rate=config.tts.sample_rate,
-        pace=config.tts.pace,
-        temperature=config.tts.temperature,
-        api_key=api_key,
+    from livekit.agents import tts
+    from src.sarvam_mpeg_tts import SarvamMpegTTS
+
+    return tts.StreamAdapter(
+        tts=SarvamMpegTTS(
+            target_language_code=config.tts.target_language,
+            model=config.tts.model,
+            speaker=config.tts.voice,
+            speech_sample_rate=config.tts.sample_rate,
+            pace=config.tts.pace,
+            temperature=config.tts.temperature,
+            api_key=api_key,
+        )
     )
 
 
 def extract_transcript_from_chat_ctx(chat_ctx) -> str:
     lines = []
-    for msg in chat_ctx.messages:
-        if msg.role == "user" and isinstance(msg.content, str):
-            text = msg.content.strip()
+    messages = chat_ctx.messages() if callable(getattr(chat_ctx, "messages", None)) else chat_ctx.messages
+    for msg in messages:
+        content = getattr(msg, "text_content", None) or getattr(msg, "content", "")
+        if isinstance(content, list):
+            content = " ".join(str(item) for item in content if isinstance(item, str))
+
+        if msg.role == "user" and isinstance(content, str):
+            text = content.strip()
             if text:
                 lines.append(f"Caller: {text}")
-        elif msg.role == "assistant" and isinstance(msg.content, str):
-            text = msg.content.strip()
+        elif msg.role == "assistant" and isinstance(content, str):
+            text = content.strip()
             if text:
                 lines.append(f"Agent: {text}")
     return "\n".join(lines)
@@ -429,16 +439,15 @@ class VoiceAgent(Agent):
         )
 
     async def on_enter(self) -> None:
-        logger.info("VoiceAgent entered room; scheduling greeting")
-        greeting = self.session.say(
+        logger.info("VoiceAgent entered room; starting call timer and scheduling greeting")
+        asyncio.create_task(self._end_call_after_timeout())
+
+        self.session.say(
             "Hello, this line is open. How can I help you?",
             allow_interruptions=True,
             add_to_chat_ctx=True,
         )
-        await greeting.wait_for_playout()
-        logger.info("Greeting playout completed; starting call timer")
-
-        asyncio.create_task(self._end_call_after_timeout())
+        logger.info("Greeting scheduled")
 
     async def _end_call_after_timeout(self) -> None:
         duration = self._config.spam_detection.call_duration_seconds

@@ -8,7 +8,7 @@ LiveKit voice agent that answers unknown calls, stalls the caller for 12 seconds
 - **Sarvam `saaras:v3`** - Speech-to-text (STT)
 - **OpenAI `gpt-5.4`** - Real-time conversation (stalling)
 - **OpenAI `gpt-4o-mini`** - Spam classification
-- **Sarvam `bulbul:v3`** - Text-to-speech (TTS)
+- **Sarvam `bulbul:v2`** - Text-to-speech (TTS)
 - **Telegram Bot API** - Spam alerts with evidence
 
 ## How It Works
