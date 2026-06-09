@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from src.providers.base import ClassificationResult
+from src.classification_result import ClassificationResult
 from src.trai_report import (
     TRAI_SMS_SHORT_CODE,
     build_report_confirmation_url,

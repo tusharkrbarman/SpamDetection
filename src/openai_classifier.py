@@ -1,15 +1,15 @@
-"""OpenAI provider implementation for LLM classification."""
+"""OpenAI implementation for transcript spam classification."""
 
 import json
 import logging
+
 from openai import AsyncOpenAI
 
-from src.providers.base import LLMProvider, ClassificationResult
+from src.classification_result import ClassificationResult
 
-logger = logging.getLogger("openai-provider")
+logger = logging.getLogger("openai-classifier")
 logger.setLevel(logging.INFO)
 
-# System prompt for classification
 CLASSIFICATION_SYSTEM_PROMPT = """\
 You are a spam call classifier. Analyze the transcript and determine if the call is spam or not.
 
@@ -32,29 +32,14 @@ If there is insufficient transcript to classify, set is_spam to false with low c
 """
 
 
-class OpenAIProvider(LLMProvider):
-    """OpenAI provider for spam classification."""
+class OpenAIClassifier:
+    """Classifies transcripts using OpenAI."""
 
     def __init__(self, api_key: str, model: str | None = None):
-        """Initialize OpenAI provider.
-
-        Args:
-            api_key: OpenAI API key
-            model: Optional model name (defaults to gpt-4o-mini)
-        """
-        super().__init__(api_key, None)
         self.model = model or "gpt-4o-mini"
         self.client = AsyncOpenAI(api_key=api_key)
 
     async def classify(self, transcript: str) -> ClassificationResult:
-        """Classify a transcript using OpenAI.
-
-        Args:
-            transcript: The call transcript to classify
-
-        Returns:
-            ClassificationResult with classification details
-        """
         if not transcript.strip():
             return ClassificationResult(
                 is_spam=False,
@@ -65,8 +50,7 @@ class OpenAIProvider(LLMProvider):
             )
 
         try:
-            logger.info(f"Using OpenAI with model: {self.model}")
-
+            logger.info("Using OpenAI with model: %s", self.model)
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -82,14 +66,13 @@ class OpenAIProvider(LLMProvider):
 
             raw = response.choices[0].message.content
             logger.info("Classification raw response: %s", raw)
-
             result = json.loads(raw)
 
             return ClassificationResult(
-                is_spam=bool(result.get("is_spam", False)),
+                is_spam=_parse_bool(result.get("is_spam", False)),
                 confidence=float(result.get("confidence", 0.0)),
                 reason=str(result.get("reason", "")),
-                evidence_lines=result.get("evidence_lines", []),
+                evidence_lines=_parse_evidence_lines(result.get("evidence_lines", [])),
                 full_transcript=transcript,
             )
 
@@ -103,14 +86,19 @@ class OpenAIProvider(LLMProvider):
                 full_transcript=transcript,
             )
 
-    async def close(self):
-        """Close the OpenAI client."""
+    async def close(self) -> None:
         await self.client.close()
 
-    def get_model_name(self) -> str:
-        """Get the model name."""
-        return self.model
 
-    def get_provider_name(self) -> str:
-        """Get the provider name."""
-        return "openai"
+def _parse_bool(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() == "true"
+    return bool(value)
+
+
+def _parse_evidence_lines(value) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value]

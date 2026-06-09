@@ -48,9 +48,8 @@ SPAM_CLASSIFICATION_MODEL=custom-model-name
 - `src/trai_report.py` - TRAI complaint draft and SMS handoff helpers
 - `src/report_server.py` - Optional confirmation page for Telegram report buttons
 - `src/config.py` - Centralized configuration management
-- `src/providers/` - Provider abstraction layer
-  - `base.py` - Base provider interface
-  - `openai.py` - OpenAI provider
+- `src/openai_classifier.py` - OpenAI spam classification implementation
+- `src/classification_result.py` - Spam classification result model
 - `exceptions.py` - Structured error handling
 - `configs/agent_config.toml` - Runtime settings for STT, LLM, TTS, voice, and spam detection
 - `docs/agent_instructions.md` - Prompt for the stalling voice agent
@@ -69,7 +68,7 @@ uv sync
 cp .env.example .env
 ```
 
-3. Fill in credentials (see below for Telegram setup and provider configuration).
+3. Fill in credentials (see below for Telegram and OpenAI setup).
 
 4. Start the worker:
 
@@ -176,7 +175,7 @@ docker build -t spam-detection-agent .
 
 ## Architecture
 
-The system uses a provider abstraction pattern for LLM classification:
+The system uses OpenAI directly for LLM classification:
 
 ```
 Incoming Call
@@ -194,8 +193,8 @@ Extract Transcript
     ↓
 SpamClassifier (spam_classifier.py)
     ├─→ Config (config.py)
-    ├─→ Provider Selection
-    │   └─→ OpenAIProvider
+    ├─→ OpenAIClassifier
+    │   └─→ classify transcript
     └─→ ClassificationResult
     ↓
 TelegramNotifier (telegram_notifier.py)
@@ -217,8 +216,8 @@ uv run pytest tests/ -v
 Run specific test categories:
 
 ```bash
-# Provider tests
-uv run pytest tests/test_providers.py -v
+# OpenAI classifier tests
+uv run pytest tests/test_openai_classifier.py -v
 
 # Integration tests
 uv run pytest tests/integration/ -v

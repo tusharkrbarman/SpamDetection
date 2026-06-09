@@ -2,58 +2,16 @@
 
 import os
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from typing import Any
-
-
-class Provider(str, Enum):
-    """Available LLM providers."""
-    OPENAI = "openai"
-
-
-@dataclass(frozen=True)
-class ProviderConfig:
-    """Configuration for a specific provider."""
-    api_key: str
-    base_url: str | None = None
-    model: str | None = None
-
-    @classmethod
-    def from_env(cls, provider: Provider) -> "ProviderConfig | None":
-        """Create provider config from environment variables.
-
-        Args:
-            provider: The provider to create config for
-
-        Returns:
-            ProviderConfig if credentials are available, None otherwise
-        """
-        if provider == Provider.OPENAI:
-            api_key = os.environ.get("OPENAI_API_KEY", "")
-            model = os.environ.get("SPAM_CLASSIFICATION_MODEL")
-            if api_key and not api_key.startswith("sk-or-"):
-                return cls(api_key=api_key, base_url=None, model=model)
-
-        return None
 
 
 @dataclass(frozen=True)
 class SpamDetectionConfig:
     """Configuration for spam detection."""
     call_duration_seconds: float = 12.0
-    provider_priority: list[Provider] = None
     max_transcript_length: int = 100_000
     llm_timeout: float = 30.0
-
-    def __post_init__(self):
-        """Set default provider priority if not provided."""
-        if self.provider_priority is None:
-            object.__setattr__(
-                self,
-                "provider_priority",
-                [Provider.OPENAI],
-            )
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "SpamDetectionConfig":
@@ -68,7 +26,6 @@ class SpamDetectionConfig:
         data = data or {}
         return cls(
             call_duration_seconds=float(data.get("call_duration_seconds", 12.0)),
-            provider_priority=[Provider.OPENAI],
             max_transcript_length=int(data.get("max_transcript_length", 100_000)),
             llm_timeout=float(data.get("llm_timeout", 30.0)),
         )
@@ -88,19 +45,6 @@ class SpamDetectionConfig:
         with open(path, "rb") as config_file:
             data = tomllib.load(config_file)
             return cls.from_dict(data.get("spam_detection"))
-
-    def get_available_provider(self) -> ProviderConfig | None:
-        """Get the first available provider based on priority.
-
-        Returns:
-            ProviderConfig for the first available provider, None if none available
-        """
-        for provider in self.provider_priority:
-            config = ProviderConfig.from_env(provider)
-            if config:
-                return config
-        return None
-
 
 @dataclass(frozen=True)
 class TelegramConfig:

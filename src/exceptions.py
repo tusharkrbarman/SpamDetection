@@ -4,61 +4,47 @@
 class SpamDetectionError(Exception):
     """Base exception for spam detection errors."""
 
-    def __init__(self, message: str, provider: str | None = None):
+    def __init__(self, message: str, component: str | None = None):
         """Initialize the error.
 
         Args:
             message: Error message
-            provider: Optional provider name where the error occurred
+            component: Optional component name where the error occurred
         """
-        self.provider = provider
+        self.component = component
         super().__init__(message)
 
     def __str__(self) -> str:
-        """String representation with provider context."""
-        if self.provider:
-            return f"[{self.provider}] {super().__str__()}"
+        """String representation with component context."""
+        if self.component:
+            return f"[{self.component}] {super().__str__()}"
         return super().__str__()
 
 
-class ProviderUnavailableError(SpamDetectionError):
-    """Raised when no provider is available or configured."""
+class OpenAIConfigurationError(SpamDetectionError):
+    """Raised when OpenAI credentials or settings are missing."""
 
-    def __init__(self, message: str = "No LLM provider credentials configured"):
+    def __init__(self, message: str = "OpenAI API credentials are not configured"):
         """Initialize the error.
 
         Args:
             message: Error message
         """
-        super().__init__(message)
-
-
-class ProviderInitializationError(SpamDetectionError):
-    """Raised when provider initialization fails."""
-
-    def __init__(self, provider: str, message: str):
-        """Initialize the error.
-
-        Args:
-            provider: Provider name
-            message: Error message
-        """
-        super().__init__(message, provider=provider)
+        super().__init__(message, component="openai")
 
 
 class ClassificationError(SpamDetectionError):
     """Raised when classification fails."""
 
-    def __init__(self, provider: str, message: str, transcript_length: int | None = None):
+    def __init__(self, message: str, transcript_length: int | None = None):
         """Initialize the error.
 
         Args:
-            provider: Provider name
             message: Error message
             transcript_length: Optional transcript length for context
         """
         self.transcript_length = transcript_length
-        super().__init__(message, provider=provider)
+        super().__init__(message, component="openai")
 
     def __str__(self) -> str:
         """String representation with transcript context."""
@@ -71,14 +57,13 @@ class ClassificationError(SpamDetectionError):
 class InvalidResponseError(ClassificationError):
     """Raised when LLM response is invalid or malformed."""
 
-    def __init__(self, provider: str, message: str = "Invalid LLM response format"):
+    def __init__(self, message: str = "Invalid LLM response format"):
         """Initialize the error.
 
         Args:
-            provider: Provider name
             message: Error message
         """
-        super().__init__(provider, message)
+        super().__init__(message)
 
 
 class TranscriptValidationError(SpamDetectionError):

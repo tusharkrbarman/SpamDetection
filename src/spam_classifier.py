@@ -1,54 +1,35 @@
-"""Spam classifier using provider abstraction layer."""
+"""Spam classifier using OpenAI."""
 
 import logging
+import os
 from pathlib import Path
 
-from src.config import AppConfig, Provider, ProviderConfig
-from src.providers import LLMProvider, OpenAIProvider
-from src.providers.base import ClassificationResult
+from src.classification_result import ClassificationResult
+from src.config import AppConfig
+from src.openai_classifier import OpenAIClassifier
 
 logger = logging.getLogger("spam-classifier")
 logger.setLevel(logging.INFO)
-
-# Provider mapping
-PROVIDER_MAP = {
-    Provider.OPENAI: OpenAIProvider,
-}
 
 # Re-export for backwards compatibility
 __all__ = ["classify_transcript", "ClassificationResult"]
 
 
-def _get_provider(config_path: Path | None = None) -> LLMProvider:
-    """Get the appropriate LLM provider based on available credentials.
-
-    Args:
-        config_path: Optional path to configuration file
-
-    Returns:
-        LLMProvider instance
+def _get_classifier() -> OpenAIClassifier:
+    """Create the OpenAI classifier from environment configuration.
 
     Raises:
-        ValueError: If no provider credentials are configured
+        ValueError: If OpenAI credentials are not configured
     """
-    app_config = AppConfig.load(config_path)
-    provider_type = None
-    provider_config = None
-    for candidate in app_config.spam_detection.provider_priority:
-        candidate_config = ProviderConfig.from_env(candidate)
-        if candidate_config:
-            provider_type = candidate
-            provider_config = candidate_config
-            break
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key or api_key == "your_openai_api_key" or api_key.startswith("sk-or-"):
+        raise ValueError("OpenAI API credentials are not configured")
 
-    if not provider_config:
-        raise ValueError("No LLM API credentials configured")
+    model = os.environ.get("SPAM_CLASSIFICATION_MODEL")
+    classifier = OpenAIClassifier(api_key=api_key, model=model)
 
-    provider_class = PROVIDER_MAP[provider_type]
-    provider = provider_class(api_key=provider_config.api_key, model=provider_config.model)
-
-    logger.info(f"Using {provider.get_provider_name()} with model: {provider.get_model_name()}")
-    return provider
+    logger.info("Using OpenAI classifier with model: %s", classifier.model)
+    return classifier
 
 
 async def classify_transcript(
@@ -92,10 +73,10 @@ async def classify_transcript(
             full_transcript=transcript,
         )
 
-    provider = None
+    classifier = None
     try:
-        provider = _get_provider(config_path)
-        result = await provider.classify(transcript)
+        classifier = _get_classifier()
+        result = await classifier.classify(transcript)
         return result
 
     except Exception as e:
@@ -108,5 +89,5 @@ async def classify_transcript(
             full_transcript=transcript,
         )
     finally:
-        if provider:
-            await provider.close()
+        if classifier:
+            await classifier.close()

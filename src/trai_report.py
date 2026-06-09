@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from urllib.parse import quote
 
-from src.providers.base import ClassificationResult
+from src.classification_result import ClassificationResult
 
 TRAI_SMS_SHORT_CODE = "1909"
 UNKNOWN_SENDER = "UNKNOWN"
