@@ -83,7 +83,7 @@ class LLMConfig:
 @dataclass(frozen=True)
 class TTSConfig:
     model: str = "bulbul:v3"
-    voice: str = "Aditya"
+    voice: str = "aditya"
     pace: float = 1.0
     temperature: float = 0.35
     sample_rate: int = 16000
@@ -94,7 +94,7 @@ class TTSConfig:
         data = data or {}
         return cls(
             model=str(data.get("model", "bulbul:v3")),
-            voice=str(data.get("voice", "Aditya")),
+            voice=str(data.get("voice", "aditya")),
             pace=_clamp_pace(data.get("pace", 1.0)),
             temperature=_clamp_temperature(data.get("temperature", 0.35)),
             sample_rate=int(data.get("sample_rate", 16000)),
@@ -257,7 +257,7 @@ def create_stt(config: AgentConfig):
         return MockSTT()
     
     # Real Sarvam STT
-    logger.info("Using Sarvam STT")
+    logger.info("Using Sarvam STT model=%s language=%s", config.stt.model, config.stt.language)
     from livekit.plugins import sarvam
     return sarvam.STT(
         language=config.stt.language,
@@ -300,7 +300,7 @@ def create_tts(config: AgentConfig):
         return MockTTS()
     
     # Real Sarvam TTS
-    logger.info("Using Sarvam TTS")
+    logger.info("Using Sarvam TTS model=%s speaker=%s", config.tts.model, config.tts.voice)
     from livekit.plugins import sarvam
     return sarvam.TTS(
         target_language_code=config.tts.target_language,
@@ -429,11 +429,14 @@ class VoiceAgent(Agent):
         )
 
     async def on_enter(self) -> None:
-        await self.session.say(
+        logger.info("VoiceAgent entered room; scheduling greeting")
+        greeting = self.session.say(
             "Hello, this line is open. How can I help you?",
             allow_interruptions=True,
             add_to_chat_ctx=True,
         )
+        await greeting.wait_for_playout()
+        logger.info("Greeting playout completed; starting call timer")
 
         asyncio.create_task(self._end_call_after_timeout())
 
