@@ -80,7 +80,7 @@ class LLMConfig:
 
 @dataclass(frozen=True)
 class TTSConfig:
-    voice: str = "priya"
+    voice: str = "ajay"
     pace: float = 1.0
     temperature: float = 0.35
     sample_rate: int = 16000
@@ -90,7 +90,7 @@ class TTSConfig:
     def from_dict(cls, data: dict[str, Any] | None) -> "TTSConfig":
         data = data or {}
         return cls(
-            voice=str(data.get("voice", "priya")),
+            voice=str(data.get("voice", "ajay")),
             pace=_clamp_pace(data.get("pace", 1.0)),
             temperature=_clamp_temperature(data.get("temperature", 0.35)),
             sample_rate=int(data.get("sample_rate", 16000)),

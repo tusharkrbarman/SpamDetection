@@ -11,7 +11,7 @@ max_output_tokens = 96
 use_websocket = true
 
 [tts]
-voice = "priya"
+voice = "ajay"
 pace = 1.0
 temperature = 0.35
 sample_rate = 16000
