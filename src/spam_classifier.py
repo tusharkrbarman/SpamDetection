@@ -16,6 +16,15 @@ __all__ = ["classify_transcript", "ClassificationResult"]
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "configs" / "agent_config.toml"
 
+
+def _classification_error_reason(error: Exception) -> str:
+    status_code = getattr(error, "status_code", None)
+    error_text = str(error).lower()
+    if status_code == 429 or "resource_exhausted" in error_text or "quota" in error_text:
+        return "Classification error: LLM quota exceeded; try again later"
+    return "Classification error: provider request failed"
+
+
 def _get_classifier(app_config: AppConfig):
     """Create the classifier from environment configuration.
 
@@ -107,7 +116,7 @@ async def classify_transcript(
         return ClassificationResult(
             is_spam=False,
             confidence=0.0,
-            reason=f"Classification error: {e}",
+            reason=_classification_error_reason(e),
             evidence_lines=[],
             full_transcript=transcript,
         )

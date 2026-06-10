@@ -134,3 +134,35 @@ class TestSpamClassifier:
         assert "Classification error:" in result.reason
         assert result.evidence_lines == []
         assert result.full_transcript == transcript
+
+    @pytest.mark.asyncio
+    async def test_quota_error_handling_is_concise(self):
+        transcript = "Some test transcript"
+
+        class QuotaError(Exception):
+            status_code = 429
+
+        with patch.dict(
+            os.environ,
+            {
+                "SPAM_CLASSIFIER_PROVIDER": "openai",
+                "OPENAI_API_KEY": "sk-test-key",
+            },
+        ), patch(
+            "src.spam_classifier.OpenAIClassifier"
+        ) as classifier_class:
+            classifier = MagicMock()
+            classifier.model = "gpt-4o-mini"
+            classifier.classify = AsyncMock(
+                side_effect=QuotaError("very long quota response " * 200)
+            )
+            classifier.close = AsyncMock()
+            classifier_class.return_value = classifier
+
+            result = await classify_transcript(transcript)
+
+        assert result.is_spam is False
+        assert result.confidence == 0.0
+        assert result.reason == "Classification error: LLM quota exceeded; try again later"
+        assert len(result.reason) < 100
+        assert result.full_transcript == transcript

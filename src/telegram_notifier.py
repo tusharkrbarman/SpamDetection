@@ -15,6 +15,16 @@ logger = logging.getLogger("telegram-notifier")
 logger.setLevel(logging.INFO)
 
 TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
+MAX_TELEGRAM_MESSAGE_CHARS = 3900
+MAX_TELEGRAM_REASON_CHARS = 500
+MAX_TELEGRAM_EVIDENCE_CHARS = 300
+MAX_TELEGRAM_TRANSCRIPT_CHARS = 1800
+
+
+def _truncate_text(text: str, max_chars: int) -> str:
+    if len(text) <= max_chars:
+        return text
+    return f"{text[: max_chars - 3].rstrip()}..."
 
 
 def _build_message(result: ClassificationResult) -> str:
@@ -29,7 +39,7 @@ def _build_message(result: ClassificationResult) -> str:
         f"*{status}*",
         "",
         f"Confidence: `{confidence_bar}` {result.confidence:.0%}",
-        f"Reason: {result.reason}",
+        f"Reason: {_html_escape(_truncate_text(result.reason, MAX_TELEGRAM_REASON_CHARS))}",
         "",
     ]
 
@@ -82,9 +92,11 @@ async def send_spam_alert(
         return True
 
     except httpx.HTTPStatusError as e:
+        description = _telegram_error_description(e.response)
         logger.error(
-            "Failed to send Telegram alert: Telegram API returned HTTP %s",
+            "Failed to send Telegram alert: Telegram API returned HTTP %s%s",
             e.response.status_code,
+            f" ({description})" if description else "",
         )
         return False
     except httpx.HTTPError as e:
@@ -112,7 +124,7 @@ def _build_message_html(
         status,
         "",
         f"Confidence: <code>{confidence_pct}</code>",
-        f"Reason: {result.reason}",
+        f"Reason: {_html_escape(_truncate_text(result.reason, MAX_TELEGRAM_REASON_CHARS))}",
         "",
     ]
 
@@ -141,17 +153,18 @@ def _build_message_html(
     if result.evidence_lines:
         lines.append("<b>Evidence from transcript:</b>")
         for line in result.evidence_lines:
-            escaped = _html_escape(line)
+            escaped = _html_escape(_truncate_text(line, MAX_TELEGRAM_EVIDENCE_CHARS))
             lines.append(f"<i>• {escaped}</i>")
         lines.append("")
 
     lines.append("<b>Full transcript:</b>")
-    escaped_transcript = _html_escape(result.full_transcript)
+    transcript = _truncate_text(result.full_transcript, MAX_TELEGRAM_TRANSCRIPT_CHARS)
+    escaped_transcript = _html_escape(transcript)
     lines.append(f"<code>{escaped_transcript}</code>")
     lines.append("")
     lines.append(f"<i>{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</i>")
 
-    return "\n".join(lines)
+    return _truncate_html_message("\n".join(lines))
 
 
 def _build_reply_markup(
@@ -200,3 +213,21 @@ def _html_escape(text: str) -> str:
         .replace("<", "&lt;")
         .replace(">", "&gt;")
     )
+
+
+def _truncate_html_message(message: str) -> str:
+    if len(message) <= MAX_TELEGRAM_MESSAGE_CHARS:
+        return message
+    return f"{message[: MAX_TELEGRAM_MESSAGE_CHARS - 3].rstrip()}..."
+
+
+def _telegram_error_description(response: httpx.Response) -> str:
+    try:
+        data = response.json()
+    except ValueError:
+        return ""
+
+    description = data.get("description")
+    if not isinstance(description, str):
+        return ""
+    return _truncate_text(description, 160)

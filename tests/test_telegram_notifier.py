@@ -30,6 +30,23 @@ class TestTelegramNotifier:
         assert _html_escape(">") == "&gt;"
         assert _html_escape("Plain text") == "Plain text"
         assert _html_escape("Mix & < >") == "Mix &amp; &lt; &gt;"
+
+    def test_build_message_html_truncates_and_escapes(self):
+        """Test long messages are bounded and HTML-sensitive fields are escaped."""
+        result = ClassificationResult(
+            is_spam=False,
+            confidence=0.0,
+            reason="<quota> " + ("provider error " * 200),
+            evidence_lines=["<evidence> " + ("x" * 500)],
+            full_transcript="<transcript> " + ("hello " * 1000),
+        )
+
+        message = _build_message_html(result)
+
+        assert len(message) <= 3900
+        assert "&lt;quota&gt;" in message
+        assert "<quota>" not in message
+        assert "&lt;transcript&gt;" in message
     
     def _create_test_result(self, is_spam=True, confidence=0.85):
         """Helper to create a test ClassificationResult"""
