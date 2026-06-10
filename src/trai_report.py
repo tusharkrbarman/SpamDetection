@@ -1,12 +1,13 @@
 """Utilities for preparing TRAI UCC complaint drafts."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
 from src.classification_result import ClassificationResult
 
 TRAI_SMS_SHORT_CODE = "1909"
 UNKNOWN_SENDER = "UNKNOWN"
+INDIA_TIMEZONE = timezone(timedelta(hours=5, minutes=30))
 
 
 def normalize_sender(sender: str | None) -> str:
@@ -33,7 +34,10 @@ def build_trai_complaint_text(
     received_at: datetime | None = None,
 ) -> str:
     """Build a user-editable SMS complaint draft for TRAI/TSP reporting."""
-    complaint_date = (received_at or datetime.now(timezone.utc)).strftime("%d/%m/%y")
+    timestamp = received_at or datetime.now(INDIA_TIMEZONE)
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=INDIA_TIMEZONE)
+    complaint_date = timestamp.astimezone(INDIA_TIMEZONE).strftime("%d/%m/%y")
     normalized_sender = normalize_sender(sender)
     description = _build_description(result)
     return f"{description}, {normalized_sender}, {complaint_date}"

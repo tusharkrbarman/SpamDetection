@@ -38,6 +38,13 @@ def test_build_trai_complaint_text():
     assert text == "Unsolicited credit card offer, +919876543210, 09/06/26"
 
 
+def test_build_trai_complaint_text_uses_india_date():
+    received_at = datetime(2026, 6, 9, 20, 0, tzinfo=timezone.utc)
+    text = build_trai_complaint_text(_result(), sender="AX-BANK", received_at=received_at)
+
+    assert text == "Unsolicited credit card offer, AXBANK, 10/06/26"
+
+
 def test_build_trai_complaint_text_truncates_long_reason():
     text = build_trai_complaint_text(_result("x" * 200), received_at=datetime(2026, 6, 9))
 
