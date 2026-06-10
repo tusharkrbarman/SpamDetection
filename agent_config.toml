@@ -13,23 +13,23 @@ max_output_tokens = 96
 use_websocket = true
 
 [tts]
-model = "bulbul:v2"
-voice = "abhilash"
-pace = 1.0
-temperature = 0.35
+model = "bulbul:v3"
+voice = "aditya"
+pace = 0.92
+temperature = 0.25
 sample_rate = 16000
 target_language = "en-IN"
 
 [voice]
-min_endpointing_delay = 0.2
-max_endpointing_delay = 0.9
-min_interruption_duration = 0.7
-min_interruption_words = 1
-false_interruption_timeout = 1.5
+min_endpointing_delay = 0.8
+max_endpointing_delay = 2.0
+min_interruption_duration = 1.0
+min_interruption_words = 2
+false_interruption_timeout = 2.0
 resume_false_interruption = true
-preemptive_generation = true
+preemptive_generation = false
 user_away_timeout = 12.0
-min_consecutive_speech_delay = 0.1
+min_consecutive_speech_delay = 0.35
 
 [spam_detection]
 call_duration_seconds = 20

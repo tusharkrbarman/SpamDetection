@@ -83,10 +83,10 @@ class LLMConfig:
 
 @dataclass(frozen=True)
 class TTSConfig:
-    model: str = "bulbul:v2"
-    voice: str = "abhilash"
-    pace: float = 1.0
-    temperature: float = 0.35
+    model: str = "bulbul:v3"
+    voice: str = "aditya"
+    pace: float = 0.92
+    temperature: float = 0.25
     sample_rate: int = 16000
     target_language: str = "en-IN"
 
@@ -94,10 +94,10 @@ class TTSConfig:
     def from_dict(cls, data: dict[str, Any] | None) -> "TTSConfig":
         data = data or {}
         return cls(
-            model=str(data.get("model", "bulbul:v2")),
-            voice=str(data.get("voice", "abhilash")),
-            pace=_clamp_pace(data.get("pace", 1.0)),
-            temperature=_clamp_temperature(data.get("temperature", 0.35)),
+            model=str(data.get("model", "bulbul:v3")),
+            voice=str(data.get("voice", "aditya")),
+            pace=_clamp_pace(data.get("pace", 0.92)),
+            temperature=_clamp_temperature(data.get("temperature", 0.25)),
             sample_rate=int(data.get("sample_rate", 16000)),
             target_language=str(data.get("target_language", "en-IN")),
         )
@@ -105,29 +105,29 @@ class TTSConfig:
 
 @dataclass(frozen=True)
 class VoiceConfig:
-    min_endpointing_delay: float = 0.2
-    max_endpointing_delay: float = 0.9
-    min_interruption_duration: float = 0.7
-    min_interruption_words: int = 1
-    false_interruption_timeout: float = 1.5
+    min_endpointing_delay: float = 0.8
+    max_endpointing_delay: float = 2.0
+    min_interruption_duration: float = 1.0
+    min_interruption_words: int = 2
+    false_interruption_timeout: float = 2.0
     resume_false_interruption: bool = True
-    preemptive_generation: bool = True
+    preemptive_generation: bool = False
     user_away_timeout: float = 12.0
-    min_consecutive_speech_delay: float = 0.1
+    min_consecutive_speech_delay: float = 0.35
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "VoiceConfig":
         data = data or {}
         return cls(
-            min_endpointing_delay=float(data.get("min_endpointing_delay", 0.2)),
-            max_endpointing_delay=float(data.get("max_endpointing_delay", 0.9)),
-            min_interruption_duration=float(data.get("min_interruption_duration", 0.7)),
-            min_interruption_words=int(data.get("min_interruption_words", 1)),
-            false_interruption_timeout=float(data.get("false_interruption_timeout", 1.5)),
+            min_endpointing_delay=float(data.get("min_endpointing_delay", 0.8)),
+            max_endpointing_delay=float(data.get("max_endpointing_delay", 2.0)),
+            min_interruption_duration=float(data.get("min_interruption_duration", 1.0)),
+            min_interruption_words=int(data.get("min_interruption_words", 2)),
+            false_interruption_timeout=float(data.get("false_interruption_timeout", 2.0)),
             resume_false_interruption=bool(data.get("resume_false_interruption", True)),
-            preemptive_generation=bool(data.get("preemptive_generation", True)),
+            preemptive_generation=bool(data.get("preemptive_generation", False)),
             user_away_timeout=float(data.get("user_away_timeout", 12.0)),
-            min_consecutive_speech_delay=float(data.get("min_consecutive_speech_delay", 0.1)),
+            min_consecutive_speech_delay=float(data.get("min_consecutive_speech_delay", 0.35)),
         )
 
 
@@ -462,7 +462,7 @@ async def entrypoint(ctx: JobContext):
     if vad is None:
         vad = silero.VAD.load(
             min_speech_duration=0.08,
-            min_silence_duration=0.45,
+            min_silence_duration=0.8,
             prefix_padding_duration=0.35,
             activation_threshold=0.55,
             sample_rate=16000,
@@ -508,7 +508,7 @@ async def entrypoint(ctx: JobContext):
 def prewarm(proc) -> None:
     proc.userdata["vad"] = silero.VAD.load(
         min_speech_duration=0.08,
-        min_silence_duration=0.45,
+        min_silence_duration=0.8,
         prefix_padding_duration=0.35,
         activation_threshold=0.55,
         sample_rate=16000,

@@ -7,7 +7,7 @@ LiveKit voice agent that answers unknown calls, stalls the caller for 20 seconds
 - **LiveKit Agents** - Voice call runtime
 - **Sarvam `saaras:v3`** - Speech-to-text (STT)
 - **Gemini `gemini-2.5-flash-lite`** - Development LLM and spam classification
-- **Sarvam `bulbul:v2`** - Text-to-speech (TTS)
+- **Sarvam `bulbul:v3`** - Text-to-speech (TTS)
 - **Telegram Bot API** - Spam alerts with evidence
 
 ## How It Works

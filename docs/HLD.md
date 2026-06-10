@@ -19,7 +19,7 @@ graph TB
         Agent["VoiceAgent\n(Stalling Agent)"]
         STT["Sarvam STT\nsaaras:v3"]
         LLM["Gemini LLM\ngemini-2.5-flash-lite"]
-        TTS["Sarvam TTS\nbulbul:v2"]
+        TTS["Sarvam TTS\nbulbul:v3"]
         Timer["20s Call Timer"]
     end
 
@@ -137,7 +137,7 @@ sequenceDiagram
 |-----------|---------------|------|
 | STT | Sarvam `saaras:v3` | Converts caller audio to text |
 | LLM | Gemini `gemini-2.5-flash-lite` | Generates stalling responses during development |
-| TTS | Sarvam `bulbul:v2` | Converts responses to audio |
+| TTS | Sarvam `bulbul:v3` | Converts responses to audio |
 | Timer | Internal | Triggers classification after 20s |
 
 ### 3. Post-Call Pipeline
@@ -170,5 +170,5 @@ Audio → STT → Text → LLM → Response → TTS → Audio (loop for 20s)
 | Stalling behavior | `agent_instructions.md` | - | Prompt for voice agent |
 | STT language | `agent_config.toml` | unknown | Auto-detect caller language |
 | STT model | `agent_config.toml` | saaras:v3 | Sarvam speech-to-text model |
-| TTS model | `agent_config.toml` | bulbul:v2 | Sarvam text-to-speech model |
-| TTS voice | `agent_config.toml` | abhilash | Voice for agent responses |
+| TTS model | `agent_config.toml` | bulbul:v3 | Sarvam text-to-speech model |
+| TTS voice | `agent_config.toml` | aditya | Voice for agent responses |
