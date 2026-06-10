@@ -3,6 +3,9 @@ import asyncio
 from unittest.mock import AsyncMock, patch, MagicMock
 import sys
 import os
+import logging
+
+import httpx
 
 # Add the project root to sys.path so we can import modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -183,6 +186,38 @@ class TestTelegramNotifier:
             }):
                 sent = await send_spam_alert(result)
                 assert sent == False
+
+    @pytest.mark.asyncio
+    async def test_send_spam_alert_redacts_token_on_http_status_error(self, caplog):
+        """Test that Telegram HTTP errors do not leak the bot token."""
+        result = self._create_test_result()
+        token = "test-secret-token"
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        request = httpx.Request("POST", url)
+        response = httpx.Response(401, request=request)
+
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Client error '401 Unauthorized'",
+            request=request,
+            response=response,
+        )
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+
+        with patch('src.telegram_notifier.httpx.AsyncClient', return_value=mock_client):
+            with patch.dict(os.environ, {
+                "TELEGRAM_BOT_TOKEN": token,
+                "TELEGRAM_CHAT_ID": "123456789"
+            }):
+                with caplog.at_level(logging.ERROR, logger="telegram-notifier"):
+                    sent = await send_spam_alert(result)
+
+        assert sent == False
+        assert token not in caplog.text
+        assert "api.telegram.org" not in caplog.text
+        assert "HTTP 401" in caplog.text
 
 
 if __name__ == "__main__":

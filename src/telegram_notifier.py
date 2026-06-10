@@ -81,8 +81,17 @@ async def send_spam_alert(
         logger.info("Telegram alert sent successfully")
         return True
 
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            "Failed to send Telegram alert: Telegram API returned HTTP %s",
+            e.response.status_code,
+        )
+        return False
+    except httpx.HTTPError as e:
+        logger.error("Failed to send Telegram alert: %s", e.__class__.__name__)
+        return False
     except Exception as e:
-        logger.error("Failed to send Telegram alert: %s", e, exc_info=True)
+        logger.error("Failed to send Telegram alert: %s", e.__class__.__name__, exc_info=True)
         return False
 
 
