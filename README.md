@@ -12,7 +12,7 @@ LiveKit voice agent that answers unknown calls, stalls the caller for 20 seconds
 
 ## How It Works
 
-1. **Call comes in** - Agent answers with "Hello, this line is open. How can I help you?"
+1. **Call comes in** - Agent answers with "Hello."
 2. **Stall phase (20s)** - Agent keeps the caller talking with short filler responses
 3. **Call ends** - After 20 seconds, the agent disconnects
 4. **Classification** - Full transcript is sent to LLM for spam classification
