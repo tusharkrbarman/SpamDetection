@@ -133,7 +133,7 @@ class TestAgentFunctionality:
     def test_spam_detection_config_defaults(self):
         """Test SpamDetectionConfig default values"""
         config = SpamDetectionConfig()
-        assert config.call_duration_seconds == 20.0
+        assert config.call_duration_seconds == 38.0
         assert config.classification_model == "gpt-4o-mini"
     
     def test_spam_detection_config_custom(self):

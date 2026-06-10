@@ -32,6 +32,6 @@ user_away_timeout = 12.0
 min_consecutive_speech_delay = 0.35
 
 [spam_detection]
-call_duration_seconds = 20
+call_duration_seconds = 38
 classification_provider = "gemini"
 classification_model = "gemini-3.1-flash-lite"

@@ -1,6 +1,6 @@
 # Spam Call Detection Agent
 
-LiveKit voice agent that answers unknown calls, stalls the caller for 20 seconds, classifies the transcript as spam or legitimate, and sends you a Telegram alert with evidence.
+LiveKit voice agent that answers unknown calls, stalls the caller for 38 seconds, classifies the transcript as spam or legitimate, and sends you a Telegram alert with evidence.
 
 ## Stack
 
@@ -13,8 +13,8 @@ LiveKit voice agent that answers unknown calls, stalls the caller for 20 seconds
 ## How It Works
 
 1. **Call comes in** - Agent answers with "Hello."
-2. **Stall phase (20s)** - Agent keeps the caller talking with short filler responses
-3. **Call ends** - After 20 seconds, the agent disconnects
+2. **Stall phase (38s)** - Agent keeps the caller talking with short filler responses
+3. **Call ends** - After 38 seconds, the agent disconnects
 4. **Classification** - Full transcript is sent to LLM for spam classification
 5. **Telegram alert** - You receive a formatted message with:
    - Spam/Legitimate verdict
@@ -159,7 +159,7 @@ TRAI_REPORT_SERVER_PORT=8787
 ## Configuration
 
 - `configs/agent_config.toml` - Tune STT, LLM, TTS, voice behavior, and spam detection settings
-  - `[spam_detection].call_duration_seconds` - How long to keep the caller talking (default: 20)
+  - `[spam_detection].call_duration_seconds` - How long to keep the caller talking (default: 38)
   - `[spam_detection].max_transcript_length` - Maximum transcript length in characters (default: 100000)
   - `[spam_detection].llm_timeout` - LLM API timeout in seconds (default: 30.0)
 - `docs/agent_instructions.md` - Change the stalling agent behavior
@@ -195,7 +195,7 @@ VoiceAgent (src/agent.py)
     ├─→ LLM (Gemini or OpenAI) → Stalling responses
     └─→ TTS (Sarvam/Mock) → Audio output
     ↓
-After 20s timeout
+After 38s timeout
     ↓
 Extract Transcript
     ↓

@@ -133,7 +133,7 @@ class VoiceConfig:
 
 @dataclass(frozen=True)
 class SpamDetectionConfig:
-    call_duration_seconds: float = 20.0
+    call_duration_seconds: float = 38.0
     classification_provider: str = "openai"
     classification_model: str = "gpt-4o-mini"
 
@@ -141,7 +141,7 @@ class SpamDetectionConfig:
     def from_dict(cls, data: dict[str, Any] | None) -> "SpamDetectionConfig":
         data = data or {}
         return cls(
-            call_duration_seconds=float(data.get("call_duration_seconds", 20.0)),
+            call_duration_seconds=float(data.get("call_duration_seconds", 38.0)),
             classification_provider=str(data.get("classification_provider", "openai")).lower(),
             classification_model=str(data.get("classification_model", "gpt-4o-mini")),
         )

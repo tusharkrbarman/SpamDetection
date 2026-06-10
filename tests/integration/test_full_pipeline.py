@@ -136,7 +136,7 @@ class TestConfigIntegration:
         """Test default configuration loading."""
         config = AppConfig.load()
 
-        assert config.spam_detection.call_duration_seconds == 20.0
+        assert config.spam_detection.call_duration_seconds == 38.0
         assert config.spam_detection.max_transcript_length == 100_000
 
     def test_telegram_config_disabled(self):
