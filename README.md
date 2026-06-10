@@ -6,7 +6,7 @@ LiveKit voice agent that answers unknown calls, stalls the caller for 20 seconds
 
 - **LiveKit Agents** - Voice call runtime
 - **Sarvam `saaras:v3`** - Speech-to-text (STT)
-- **Gemini `gemini-2.5-flash-lite`** - Development LLM and spam classification
+- **Gemini `gemini-3.1-flash-lite`** - Development LLM and spam classification
 - **Sarvam `bulbul:v3`** - Text-to-speech (TTS)
 - **Telegram Bot API** - Spam alerts with evidence
 
@@ -31,7 +31,7 @@ Development config uses the Gemini API free tier for both stalling conversation 
 LLM_PROVIDER=gemini
 SPAM_CLASSIFIER_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_api_key
-SPAM_CLASSIFICATION_MODEL=gemini-2.5-flash-lite
+SPAM_CLASSIFICATION_MODEL=gemini-3.1-flash-lite
 ```
 
 You can switch back to OpenAI by setting both providers to `openai` and adding `OPENAI_API_KEY`.
@@ -135,7 +135,7 @@ SARVAM_API_KEY=your_sarvam_api_key
 LLM_PROVIDER=gemini
 SPAM_CLASSIFIER_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_api_key
-SPAM_CLASSIFICATION_MODEL=gemini-2.5-flash-lite
+SPAM_CLASSIFICATION_MODEL=gemini-3.1-flash-lite
 ```
 
 ### Optional Configuration

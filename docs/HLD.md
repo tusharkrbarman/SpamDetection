@@ -18,14 +18,14 @@ graph TB
     subgraph "Voice Agent Worker"
         Agent["VoiceAgent\n(Stalling Agent)"]
         STT["Sarvam STT\nsaaras:v3"]
-        LLM["Gemini LLM\ngemini-2.5-flash-lite"]
+        LLM["Gemini LLM\ngemini-3.1-flash-lite"]
         TTS["Sarvam TTS\nbulbul:v3"]
         Timer["20s Call Timer"]
     end
 
     subgraph "Post-Call Pipeline"
         Extractor["Transcript\nExtractor"]
-        Classifier["Spam Classifier\ngemini-2.5-flash-lite"]
+        Classifier["Spam Classifier\ngemini-3.1-flash-lite"]
         Notifier["Telegram\nNotifier"]
     end
 
@@ -136,7 +136,7 @@ sequenceDiagram
 | Component | Model/Service | Role |
 |-----------|---------------|------|
 | STT | Sarvam `saaras:v3` | Converts caller audio to text |
-| LLM | Gemini `gemini-2.5-flash-lite` | Generates stalling responses during development |
+| LLM | Gemini `gemini-3.1-flash-lite` | Generates stalling responses during development |
 | TTS | Sarvam `bulbul:v3` | Converts responses to audio |
 | Timer | Internal | Triggers classification after 20s |
 
@@ -144,7 +144,7 @@ sequenceDiagram
 | Component | Model | Input | Output |
 |-----------|-------|-------|--------|
 | Transcript Extractor | - | LiveKit chat_ctx | Formatted transcript string |
-| Spam Classifier | Gemini `gemini-2.5-flash-lite` | Transcript | JSON: {is_spam, confidence, reason, evidence_lines} |
+| Spam Classifier | Gemini `gemini-3.1-flash-lite` | Transcript | JSON: {is_spam, confidence, reason, evidence_lines} |
 | Telegram Notifier | Telegram Bot API | Classification result | Formatted HTML message |
 
 ### 4. Data Flow
@@ -166,7 +166,7 @@ Audio → STT → Text → LLM → Response → TTS → Audio (loop for 20s)
 | Setting | File | Default | Description |
 |---------|------|---------|-------------|
 | Call duration | `agent_config.toml` | 20s | How long to stall caller |
-| Classification model | `agent_config.toml` | gemini-2.5-flash-lite | Model for spam detection |
+| Classification model | `agent_config.toml` | gemini-3.1-flash-lite | Model for spam detection |
 | Stalling behavior | `agent_instructions.md` | - | Prompt for voice agent |
 | STT language | `agent_config.toml` | unknown | Auto-detect caller language |
 | STT model | `agent_config.toml` | saaras:v3 | Sarvam speech-to-text model |

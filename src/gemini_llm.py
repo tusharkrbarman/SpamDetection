@@ -18,6 +18,8 @@ logger = logging.getLogger("gemini")
 logger.setLevel(logging.INFO)
 
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
+GEMINI_FALLBACK_RESPONSE = "Okay, go on."
+MAX_ERROR_SUMMARY_CHARS = 240
 
 
 class GeminiLLM(llm.LLM):
@@ -27,7 +29,7 @@ class GeminiLLM(llm.LLM):
         self,
         *,
         api_key: str,
-        model: str = "gemini-2.5-flash-lite",
+        model: str = "gemini-3.1-flash-lite",
         max_output_tokens: int = 96,
         temperature: float = 0.4,
     ) -> None:
@@ -95,10 +97,11 @@ class GeminiLLM(llm.LLM):
             raise APIConnectionError(f"Gemini API connection error: {e}") from e
 
         if response.status_code != 200:
+            error_summary = _summarize_error_response(response)
             raise APIStatusError(
-                message=f"Gemini API error ({response.status_code}): {response.text}",
+                message=f"Gemini API error ({response.status_code}): {error_summary}",
                 status_code=response.status_code,
-                body=response.text,
+                body=error_summary,
             )
 
         payload = response.json()
@@ -129,10 +132,18 @@ class GeminiLLMStream(llm.LLMStream):
 
     async def _run(self) -> None:
         contents, google_data = self._chat_ctx.to_provider_format("google")
-        text, usage = await self._gemini_llm.generate_text(
-            contents=contents,
-            system_messages=google_data.system_messages,
-        )
+        try:
+            text, usage = await self._gemini_llm.generate_text(
+                contents=contents,
+                system_messages=google_data.system_messages,
+            )
+        except APIStatusError as e:
+            if not _is_quota_error(e):
+                raise
+            logger.warning("Gemini quota exceeded during live response; using fallback reply")
+            text = GEMINI_FALLBACK_RESPONSE
+            usage = None
+
         self._event_ch.send_nowait(
             llm.ChatChunk(
                 id="gemini",
@@ -146,7 +157,7 @@ class GeminiClassifier:
     """Classifies transcripts with Gemini's free-tier-friendly text API."""
 
     def __init__(self, api_key: str, model: str | None = None):
-        self.model = model or "gemini-2.5-flash-lite"
+        self.model = model or "gemini-3.1-flash-lite"
         self._llm = GeminiLLM(
             api_key=api_key,
             model=self.model,
@@ -209,3 +220,49 @@ def _strip_json_fence(text: str) -> str:
     if stripped.startswith("```"):
         return stripped.removeprefix("```").removesuffix("```").strip()
     return stripped
+
+
+def _is_quota_error(error: Exception) -> bool:
+    status_code = getattr(error, "status_code", None)
+    text = str(error).lower()
+    return status_code == 429 or "quota" in text or "resource_exhausted" in text
+
+
+def _summarize_error_response(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        return _truncate_error(response.text or response.reason_phrase)
+
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if not isinstance(error, dict):
+        return _truncate_error(response.text or response.reason_phrase)
+
+    status = str(error.get("status", "")).strip()
+    message = str(error.get("message", "")).strip()
+    if response.status_code == 429 or status == "RESOURCE_EXHAUSTED":
+        retry_delay = _extract_retry_delay(error)
+        retry_suffix = f"; retry after {retry_delay}" if retry_delay else ""
+        return f"quota exceeded{retry_suffix}"
+
+    first_line = message.splitlines()[0] if message else response.reason_phrase
+    return _truncate_error(first_line)
+
+
+def _extract_retry_delay(error: dict[str, Any]) -> str:
+    details = error.get("details")
+    if not isinstance(details, list):
+        return ""
+    for detail in details:
+        if not isinstance(detail, dict):
+            continue
+        retry_delay = detail.get("retryDelay")
+        if isinstance(retry_delay, str):
+            return retry_delay
+    return ""
+
+
+def _truncate_error(text: str) -> str:
+    if len(text) <= MAX_ERROR_SUMMARY_CHARS:
+        return text
+    return f"{text[: MAX_ERROR_SUMMARY_CHARS - 3].rstrip()}..."
