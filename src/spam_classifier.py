@@ -1,4 +1,4 @@
-"""Spam classifier using OpenAI."""
+"""Spam classifier using the configured text-to-text provider."""
 
 import logging
 import os
@@ -14,18 +14,41 @@ logger.setLevel(logging.INFO)
 # Re-export for backwards compatibility
 __all__ = ["classify_transcript", "ClassificationResult"]
 
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "configs" / "agent_config.toml"
 
-def _get_classifier() -> OpenAIClassifier:
-    """Create the OpenAI classifier from environment configuration.
+def _get_classifier(app_config: AppConfig):
+    """Create the classifier from environment configuration.
 
     Raises:
-        ValueError: If OpenAI credentials are not configured
+        ValueError: If provider credentials are not configured
     """
+    provider = os.environ.get(
+        "SPAM_CLASSIFIER_PROVIDER",
+        os.environ.get(
+            "LLM_PROVIDER",
+            app_config.spam_detection.classification_provider,
+        ),
+    ).lower()
+    model = os.environ.get("SPAM_CLASSIFICATION_MODEL") or app_config.spam_detection.classification_model
+
+    if provider == "gemini":
+        api_key = os.environ.get("GEMINI_API_KEY", "")
+        if not api_key or api_key == "your_gemini_api_key":
+            raise ValueError("Gemini API credentials are not configured")
+
+        from src.gemini_llm import GeminiClassifier
+
+        classifier = GeminiClassifier(api_key=api_key, model=model)
+        logger.info("Using Gemini classifier with model: %s", classifier.model)
+        return classifier
+
+    if provider != "openai":
+        raise ValueError(f"Unsupported spam classifier provider: {provider}")
+
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key or api_key == "your_openai_api_key" or api_key.startswith("sk-or-"):
         raise ValueError("OpenAI API credentials are not configured")
 
-    model = os.environ.get("SPAM_CLASSIFICATION_MODEL")
     classifier = OpenAIClassifier(api_key=api_key, model=model)
 
     logger.info("Using OpenAI classifier with model: %s", classifier.model)
@@ -46,7 +69,7 @@ async def classify_transcript(
         ClassificationResult with classification details
     """
     # Load config for validation
-    app_config = AppConfig.load(config_path)
+    app_config = AppConfig.load(config_path or DEFAULT_CONFIG_PATH)
 
     # Validate transcript length
     if len(transcript) > app_config.spam_detection.max_transcript_length:
@@ -75,7 +98,7 @@ async def classify_transcript(
 
     classifier = None
     try:
-        classifier = _get_classifier()
+        classifier = _get_classifier(app_config)
         result = await classifier.classify(transcript)
         return result
 

@@ -2,6 +2,7 @@
 
 import os
 import sys
+import types
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -48,7 +49,13 @@ class TestSpamClassifier:
             full_transcript=transcript,
         )
 
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-key"}), patch(
+        with patch.dict(
+            os.environ,
+            {
+                "SPAM_CLASSIFIER_PROVIDER": "openai",
+                "OPENAI_API_KEY": "sk-test-key",
+            },
+        ), patch(
             "src.spam_classifier.OpenAIClassifier"
         ) as classifier_class:
             classifier = MagicMock()
@@ -67,10 +74,51 @@ class TestSpamClassifier:
         assert result.full_transcript == transcript
 
     @pytest.mark.asyncio
+    async def test_spam_classification_with_gemini_classifier(self):
+        transcript = "Caller: You have won a prize and must act now."
+        mock_result = ClassificationResult(
+            is_spam=True,
+            confidence=0.9,
+            reason="Prize scam language",
+            evidence_lines=["Caller: You have won a prize and must act now."],
+            full_transcript=transcript,
+        )
+
+        fake_gemini_module = types.SimpleNamespace(GeminiClassifier=MagicMock())
+
+        with patch.dict(
+            os.environ,
+            {
+                "SPAM_CLASSIFIER_PROVIDER": "gemini",
+                "GEMINI_API_KEY": "test-key",
+                "SPAM_CLASSIFICATION_MODEL": "gemini-2.5-flash-lite",
+            },
+        ), patch.dict(sys.modules, {"src.gemini_llm": fake_gemini_module}):
+            classifier = MagicMock()
+            classifier.model = "gemini-2.5-flash-lite"
+            classifier.classify = AsyncMock(return_value=mock_result)
+            classifier.close = AsyncMock()
+            fake_gemini_module.GeminiClassifier.return_value = classifier
+
+            result = await classify_transcript(transcript)
+
+        assert result.is_spam is True
+        assert result.confidence == 0.9
+        assert result.reason == "Prize scam language"
+        assert result.evidence_lines == ["Caller: You have won a prize and must act now."]
+        assert result.full_transcript == transcript
+
+    @pytest.mark.asyncio
     async def test_classification_error_handling(self):
         transcript = "Some test transcript"
 
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-key"}), patch(
+        with patch.dict(
+            os.environ,
+            {
+                "SPAM_CLASSIFIER_PROVIDER": "openai",
+                "OPENAI_API_KEY": "sk-test-key",
+            },
+        ), patch(
             "src.spam_classifier.OpenAIClassifier"
         ) as classifier_class:
             classifier = MagicMock()

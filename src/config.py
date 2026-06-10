@@ -9,9 +9,11 @@ from typing import Any
 @dataclass(frozen=True)
 class SpamDetectionConfig:
     """Configuration for spam detection."""
-    call_duration_seconds: float = 12.0
+    call_duration_seconds: float = 20.0
     max_transcript_length: int = 100_000
     llm_timeout: float = 30.0
+    classification_provider: str = "openai"
+    classification_model: str = "gpt-4o-mini"
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "SpamDetectionConfig":
@@ -25,9 +27,11 @@ class SpamDetectionConfig:
         """
         data = data or {}
         return cls(
-            call_duration_seconds=float(data.get("call_duration_seconds", 12.0)),
+            call_duration_seconds=float(data.get("call_duration_seconds", 20.0)),
             max_transcript_length=int(data.get("max_transcript_length", 100_000)),
             llm_timeout=float(data.get("llm_timeout", 30.0)),
+            classification_provider=str(data.get("classification_provider", "openai")).lower(),
+            classification_model=str(data.get("classification_model", "gpt-4o-mini")),
         )
 
     @classmethod

@@ -2,14 +2,12 @@ import asyncio
 import logging
 import os
 import tomllib
-import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
 from livekit.agents import JobContext, WorkerOptions, cli
-from livekit.agents.types import NOT_GIVEN
 from livekit.agents.voice import Agent, AgentSession, room_io
 from livekit.plugins import noise_cancellation, silero
 
@@ -60,6 +58,7 @@ class STTConfig:
 
 @dataclass(frozen=True)
 class LLMConfig:
+    provider: str = "openai"
     model: str = "gpt-5.4"
     reasoning_effort: str = "none"
     verbosity: str = "low"
@@ -73,6 +72,7 @@ class LLMConfig:
         if max_output_tokens < 1:
             raise ValueError("llm.max_output_tokens must be greater than 0")
         return cls(
+            provider=str(data.get("provider", "openai")).lower(),
             model=str(data.get("model", "gpt-5.4")),
             reasoning_effort=str(data.get("reasoning_effort", "none")),
             verbosity=str(data.get("verbosity", "low")),
@@ -133,14 +133,16 @@ class VoiceConfig:
 
 @dataclass(frozen=True)
 class SpamDetectionConfig:
-    call_duration_seconds: float = 12.0
+    call_duration_seconds: float = 20.0
+    classification_provider: str = "openai"
     classification_model: str = "gpt-4o-mini"
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "SpamDetectionConfig":
         data = data or {}
         return cls(
-            call_duration_seconds=float(data.get("call_duration_seconds", 12.0)),
+            call_duration_seconds=float(data.get("call_duration_seconds", 20.0)),
+            classification_provider=str(data.get("classification_provider", "openai")).lower(),
             classification_model=str(data.get("classification_model", "gpt-4o-mini")),
         )
 
@@ -196,8 +198,26 @@ def create_stt(config: AgentConfig):
 
 def create_llm(config: AgentConfig):
     """Create LLM instance based on configuration."""
-    api_key = os.environ.get("OPENAI_API_KEY")
+    provider = os.environ.get("LLM_PROVIDER", config.llm.provider).lower()
 
+    if provider == "gemini":
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key or api_key == "your_gemini_api_key":
+            raise ValueError("GEMINI_API_KEY is required for the Gemini LLM")
+
+        logger.info("Using Gemini LLM model=%s", config.llm.model)
+        from src.gemini_llm import GeminiLLM
+
+        return GeminiLLM(
+            api_key=api_key,
+            model=config.llm.model,
+            max_output_tokens=config.llm.max_output_tokens,
+        )
+
+    if provider != "openai":
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key or api_key == "your_openai_api_key":
         raise ValueError("OPENAI_API_KEY is required for the OpenAI LLM")
     if api_key.startswith("sk-or-"):
@@ -363,7 +383,7 @@ class VoiceAgent(Agent):
         asyncio.create_task(self._end_call_after_timeout())
 
         self.session.say(
-            "Hello, this line is open. How can I help you?",
+            "Hello.",
             allow_interruptions=True,
             add_to_chat_ctx=True,
         )

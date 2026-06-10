@@ -136,7 +136,7 @@ class TestConfigIntegration:
         """Test default configuration loading."""
         config = AppConfig.load()
 
-        assert config.spam_detection.call_duration_seconds == 12.0
+        assert config.spam_detection.call_duration_seconds == 20.0
         assert config.spam_detection.max_transcript_length == 100_000
 
     def test_telegram_config_disabled(self):
@@ -169,7 +169,13 @@ class _mock_openai_classifier:
         self.classifier.close = AsyncMock()
 
     def __enter__(self):
-        self.env_patch = patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test-key"})
+        self.env_patch = patch.dict(
+            "os.environ",
+            {
+                "SPAM_CLASSIFIER_PROVIDER": "openai",
+                "OPENAI_API_KEY": "sk-test-key",
+            },
+        )
         self.class_patch = patch("src.spam_classifier.OpenAIClassifier", return_value=self.classifier)
         self.env_patch.__enter__()
         self.class_patch.__enter__()

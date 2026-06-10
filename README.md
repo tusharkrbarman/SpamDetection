@@ -1,21 +1,20 @@
 # Spam Call Detection Agent
 
-LiveKit voice agent that answers unknown calls, stalls the caller for 12 seconds, classifies the transcript as spam or legitimate, and sends you a Telegram alert with evidence.
+LiveKit voice agent that answers unknown calls, stalls the caller for 20 seconds, classifies the transcript as spam or legitimate, and sends you a Telegram alert with evidence.
 
 ## Stack
 
 - **LiveKit Agents** - Voice call runtime
 - **Sarvam `saaras:v3`** - Speech-to-text (STT)
-- **OpenAI `gpt-5.4`** - Real-time conversation (stalling)
-- **OpenAI `gpt-4o-mini`** - Spam classification
+- **Gemini `gemini-2.5-flash-lite`** - Development LLM and spam classification
 - **Sarvam `bulbul:v2`** - Text-to-speech (TTS)
 - **Telegram Bot API** - Spam alerts with evidence
 
 ## How It Works
 
 1. **Call comes in** - Agent answers with "Hello, this line is open. How can I help you?"
-2. **Stall phase (12s)** - Agent keeps the caller talking with short filler responses
-3. **Call ends** - After 12 seconds, the agent disconnects
+2. **Stall phase (20s)** - Agent keeps the caller talking with short filler responses
+3. **Call ends** - After 20 seconds, the agent disconnects
 4. **Classification** - Full transcript is sent to LLM for spam classification
 5. **Telegram alert** - You receive a formatted message with:
    - Spam/Legitimate verdict
@@ -24,13 +23,18 @@ LiveKit voice agent that answers unknown calls, stalls the caller for 12 seconds
    - Exact transcript lines that indicate spam (highlighted)
    - Full transcript for reference
 
-## ChatGPT/OpenAI Support
+## Text-to-Text LLM
 
-The system uses OpenAI/ChatGPT only for both stalling conversation and spam classification.
+Development config uses the Gemini API free tier for both stalling conversation and spam classification:
 
 ```bash
-OPENAI_API_KEY=sk-...
+LLM_PROVIDER=gemini
+SPAM_CLASSIFIER_PROVIDER=gemini
+GEMINI_API_KEY=your_gemini_api_key
+SPAM_CLASSIFICATION_MODEL=gemini-2.5-flash-lite
 ```
+
+You can switch back to OpenAI by setting both providers to `openai` and adding `OPENAI_API_KEY`.
 
 ### Custom Model Selection
 
@@ -43,7 +47,8 @@ SPAM_CLASSIFICATION_MODEL=custom-model-name
 ## Files
 
 - `src/agent.py` - LiveKit worker entrypoint with spam detection pipeline
-- `src/spam_classifier.py` - OpenAI transcript classifier
+- `src/spam_classifier.py` - Provider-selecting transcript classifier
+- `src/gemini_llm.py` - Gemini API adapter for development LLM/classification
 - `src/telegram_notifier.py` - Telegram alert sender with formatted messages
 - `src/trai_report.py` - TRAI complaint draft and SMS handoff helpers
 - `src/report_server.py` - Optional confirmation page for Telegram report buttons
@@ -68,7 +73,7 @@ uv sync
 cp .env.example .env
 ```
 
-3. Fill in credentials (see below for Telegram and OpenAI setup).
+3. Fill in credentials (see below for Telegram and Gemini setup).
 
 4. Start the worker:
 
@@ -125,9 +130,12 @@ LIVEKIT_API_SECRET=your_livekit_api_secret
 SARVAM_API_KEY=your_sarvam_api_key
 ```
 
-### OpenAI / ChatGPT
+### Text-to-Text LLM
 ```
-OPENAI_API_KEY=sk-your_openai_api_key
+LLM_PROVIDER=gemini
+SPAM_CLASSIFIER_PROVIDER=gemini
+GEMINI_API_KEY=your_gemini_api_key
+SPAM_CLASSIFICATION_MODEL=gemini-2.5-flash-lite
 ```
 
 ### Optional Configuration
@@ -151,7 +159,7 @@ TRAI_REPORT_SERVER_PORT=8787
 ## Configuration
 
 - `configs/agent_config.toml` - Tune STT, LLM, TTS, voice behavior, and spam detection settings
-  - `[spam_detection].call_duration_seconds` - How long to keep the caller talking (default: 12)
+  - `[spam_detection].call_duration_seconds` - How long to keep the caller talking (default: 20)
   - `[spam_detection].max_transcript_length` - Maximum transcript length in characters (default: 100000)
   - `[spam_detection].llm_timeout` - LLM API timeout in seconds (default: 30.0)
 - `docs/agent_instructions.md` - Change the stalling agent behavior
@@ -175,7 +183,7 @@ docker build -t spam-detection-agent .
 
 ## Architecture
 
-The system uses OpenAI directly for LLM classification:
+The development config uses Gemini for text-to-text LLM calls:
 
 ```
 Incoming Call
@@ -184,16 +192,16 @@ LiveKit Room
     ↓
 VoiceAgent (src/agent.py)
     ├─→ STT (Sarvam/Mock) → Transcript
-    ├─→ LLM (OpenAI/Mock) → Stalling responses
+    ├─→ LLM (Gemini or OpenAI) → Stalling responses
     └─→ TTS (Sarvam/Mock) → Audio output
     ↓
-After 12s timeout
+After 20s timeout
     ↓
 Extract Transcript
     ↓
 SpamClassifier (spam_classifier.py)
     ├─→ Config (config.py)
-    ├─→ OpenAIClassifier
+    ├─→ GeminiClassifier or OpenAIClassifier
     │   └─→ classify transcript
     └─→ ClassificationResult
     ↓
@@ -216,7 +224,7 @@ uv run pytest tests/ -v
 Run specific test categories:
 
 ```bash
-# OpenAI classifier tests
+# Classifier tests
 uv run pytest tests/test_openai_classifier.py -v
 
 # Integration tests

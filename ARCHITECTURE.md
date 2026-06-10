@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Spam Call Detection System is a LiveKit-based voice agent that answers calls, stalls callers, classifies transcripts as spam or legitimate with OpenAI, and sends Telegram alerts with evidence and an optional TRAI reporting handoff.
+The Spam Call Detection System is a LiveKit-based voice agent that answers calls, stalls callers, classifies transcripts as spam or legitimate with the configured text-to-text provider, and sends Telegram alerts with evidence and an optional TRAI reporting handoff. Development config uses Gemini API free tier.
 
 ## System Flow
 
@@ -10,12 +10,12 @@ The Spam Call Detection System is a LiveKit-based voice agent that answers calls
 Incoming call
   -> LiveKit room
   -> VoiceAgent
-     -> STT: Sarvam or mock
-     -> Conversation LLM: OpenAI or mock
-     -> TTS: Sarvam or mock
-     -> 12 second timer
+     -> STT: Sarvam
+     -> Conversation LLM: Gemini or OpenAI
+     -> TTS: Sarvam
+     -> 20 second timer
   -> Transcript extraction
-  -> OpenAIClassifier
+  -> GeminiClassifier or OpenAIClassifier
   -> ClassificationResult
   -> TelegramNotifier
   -> Optional TRAI SMS confirmation page
@@ -29,7 +29,11 @@ Incoming call
 
 ### Spam Classifier
 
-[src/spam_classifier.py](src/spam_classifier.py) validates transcript length, loads OpenAI credentials from the environment, creates `OpenAIClassifier`, and returns a `ClassificationResult`.
+[src/spam_classifier.py](src/spam_classifier.py) validates transcript length, loads the configured provider credentials, creates `GeminiClassifier` or `OpenAIClassifier`, and returns a `ClassificationResult`.
+
+### Gemini Development Adapter
+
+[src/gemini_llm.py](src/gemini_llm.py) provides a small Gemini REST adapter for LiveKit LLM responses and spam classification. The development config uses `gemini-2.5-flash-lite`.
 
 ### OpenAI Classifier
 
@@ -56,12 +60,16 @@ The parser converts the model response into [src/classification_result.py](src/c
 
 ## Configuration
 
-OpenAI is the only LLM service:
+Development uses Gemini free-tier API credentials:
 
 ```env
-OPENAI_API_KEY=sk-your_openai_api_key
-SPAM_CLASSIFICATION_MODEL=gpt-4o-mini
+LLM_PROVIDER=gemini
+SPAM_CLASSIFIER_PROVIDER=gemini
+GEMINI_API_KEY=your_gemini_api_key
+SPAM_CLASSIFICATION_MODEL=gemini-2.5-flash-lite
 ```
+
+To switch back to OpenAI, set both providers to `openai` and provide `OPENAI_API_KEY`.
 
 The spam-detection settings in [configs/agent_config.toml](configs/agent_config.toml) control call duration, transcript length, and LLM timeout.
 
@@ -70,4 +78,4 @@ The spam-detection settings in [configs/agent_config.toml](configs/agent_config.
 - Keep `.env` out of version control.
 - Do not log API keys or full secrets.
 - The TRAI handoff requires explicit user confirmation before SMS submission.
-- If `OPENAI_API_KEY` is missing or set to a non-OpenAI key, classification returns a safe error result.
+- If the configured provider key is missing, classification returns a safe error result.

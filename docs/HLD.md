@@ -18,14 +18,14 @@ graph TB
     subgraph "Voice Agent Worker"
         Agent["VoiceAgent\n(Stalling Agent)"]
         STT["Sarvam STT\nsaaras:v3"]
-        LLM["OpenAI LLM\ngpt-5.4"]
+        LLM["Gemini LLM\ngemini-2.5-flash-lite"]
         TTS["Sarvam TTS\nbulbul:v2"]
-        Timer["12s Call Timer"]
+        Timer["20s Call Timer"]
     end
 
     subgraph "Post-Call Pipeline"
         Extractor["Transcript\nExtractor"]
-        Classifier["Spam Classifier\nGPT-4o-mini"]
+        Classifier["Spam Classifier\ngemini-2.5-flash-lite"]
         Notifier["Telegram\nNotifier"]
     end
 
@@ -48,7 +48,7 @@ graph TB
     TTS -->|Audio| Agent
 
     Agent -->|Starts| Timer
-    Timer -->|After 12s| Extractor
+    Timer -->|After 20s| Extractor
 
     Extractor -->|Chat Context| Extractor
     Extractor -->|Full Transcript| Classifier
@@ -78,9 +78,9 @@ sequenceDiagram
     participant LK as LiveKit Server
     participant VA as VoiceAgent
     participant STT as Sarvam STT
-    participant LLM as OpenAI GPT-5.4
+    participant LLM as Gemini Flash-Lite
     participant TTS as Sarvam TTS
-    participant Timer as 12s Timer
+    participant Timer as 20s Timer
     participant Clf as Spam Classifier
     participant TG as Telegram Bot
     participant U as 👤 User
@@ -93,7 +93,7 @@ sequenceDiagram
     VA->>LK: Play greeting
     LK->>C: Audio greeting
 
-    loop Stall Phase (12 seconds)
+    loop Stall Phase (20 seconds)
         C->>LK: Caller speaks
         LK->>VA: Audio stream
         VA->>STT: Audio chunks
@@ -106,13 +106,13 @@ sequenceDiagram
         LK->>C: Audio response
     end
 
-    Timer-->>VA: 12s elapsed
+    Timer-->>VA: 20s elapsed
     VA->>LK: Disconnect call
     LK-->>C: Call ended
 
     VA->>VA: Extract transcript from chat_ctx
     VA->>Clf: Full transcript text
-    Clf->>Clf: Analyze with GPT-4o-mini
+    Clf->>Clf: Analyze with configured classifier
     Clf-->>VA: {is_spam, confidence, reason, evidence_lines}
 
     alt is_spam == true
@@ -136,21 +136,21 @@ sequenceDiagram
 | Component | Model/Service | Role |
 |-----------|---------------|------|
 | STT | Sarvam `saaras:v3` | Converts caller audio to text |
-| LLM | OpenAI `gpt-5.4` | Generates stalling responses |
+| LLM | Gemini `gemini-2.5-flash-lite` | Generates stalling responses during development |
 | TTS | Sarvam `bulbul:v2` | Converts responses to audio |
-| Timer | Internal | Triggers classification after 12s |
+| Timer | Internal | Triggers classification after 20s |
 
 ### 3. Post-Call Pipeline
 | Component | Model | Input | Output |
 |-----------|-------|-------|--------|
 | Transcript Extractor | - | LiveKit chat_ctx | Formatted transcript string |
-| Spam Classifier | OpenAI `gpt-4o-mini` | Transcript | JSON: {is_spam, confidence, reason, evidence_lines} |
+| Spam Classifier | Gemini `gemini-2.5-flash-lite` | Transcript | JSON: {is_spam, confidence, reason, evidence_lines} |
 | Telegram Notifier | Telegram Bot API | Classification result | Formatted HTML message |
 
 ### 4. Data Flow
 
 ```
-Audio → STT → Text → LLM → Response → TTS → Audio (loop for 12s)
+Audio → STT → Text → LLM → Response → TTS → Audio (loop for 20s)
                                                     ↓
                                               Transcript
                                                     ↓
@@ -165,8 +165,8 @@ Audio → STT → Text → LLM → Response → TTS → Audio (loop for 12s)
 
 | Setting | File | Default | Description |
 |---------|------|---------|-------------|
-| Call duration | `agent_config.toml` | 12s | How long to stall caller |
-| Classification model | `agent_config.toml` | gpt-4o-mini | Model for spam detection |
+| Call duration | `agent_config.toml` | 20s | How long to stall caller |
+| Classification model | `agent_config.toml` | gemini-2.5-flash-lite | Model for spam detection |
 | Stalling behavior | `agent_instructions.md` | - | Prompt for voice agent |
 | STT language | `agent_config.toml` | unknown | Auto-detect caller language |
 | STT model | `agent_config.toml` | saaras:v3 | Sarvam speech-to-text model |
