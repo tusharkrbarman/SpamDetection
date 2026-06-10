@@ -84,9 +84,9 @@ class LLMConfig:
 @dataclass(frozen=True)
 class TTSConfig:
     model: str = "bulbul:v3"
-    voice: str = "aditya"
-    pace: float = 0.92
-    temperature: float = 0.25
+    voice: str = "kabir"
+    pace: float = 1.06
+    temperature: float = 0.55
     sample_rate: int = 16000
     target_language: str = "en-IN"
 
@@ -95,9 +95,9 @@ class TTSConfig:
         data = data or {}
         return cls(
             model=str(data.get("model", "bulbul:v3")),
-            voice=str(data.get("voice", "aditya")),
-            pace=_clamp_pace(data.get("pace", 0.92)),
-            temperature=_clamp_temperature(data.get("temperature", 0.25)),
+            voice=str(data.get("voice", "kabir")),
+            pace=_clamp_pace(data.get("pace", 1.06)),
+            temperature=_clamp_temperature(data.get("temperature", 0.55)),
             sample_rate=int(data.get("sample_rate", 16000)),
             target_language=str(data.get("target_language", "en-IN")),
         )

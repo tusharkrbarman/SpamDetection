@@ -171,4 +171,4 @@ Audio → STT → Text → LLM → Response → TTS → Audio (loop for 20s)
 | STT language | `agent_config.toml` | unknown | Auto-detect caller language |
 | STT model | `agent_config.toml` | saaras:v3 | Sarvam speech-to-text model |
 | TTS model | `agent_config.toml` | bulbul:v3 | Sarvam text-to-speech model |
-| TTS voice | `agent_config.toml` | aditya | Voice for agent responses |
+| TTS voice | `agent_config.toml` | kabir | Voice for agent responses |

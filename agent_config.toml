@@ -14,9 +14,9 @@ use_websocket = true
 
 [tts]
 model = "bulbul:v3"
-voice = "aditya"
-pace = 0.92
-temperature = 0.25
+voice = "kabir"
+pace = 1.06
+temperature = 0.55
 sample_rate = 16000
 target_language = "en-IN"
 
