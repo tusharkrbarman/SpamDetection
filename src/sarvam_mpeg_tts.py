@@ -1,20 +1,68 @@
-"""Compatibility wrapper for Sarvam TTS MP3 responses.
+"""Compatibility wrapper for Sarvam TTS audio responses.
 
 The LiveKit Sarvam plugin currently labels Sarvam's returned bytes as WAV, but
-Sarvam is returning MPEG audio bytes. This wrapper keeps Sarvam as the provider
-and lets LiveKit decode the bytes with its MP3 decoder.
+Sarvam can return compressed audio bytes. This wrapper keeps Sarvam as the
+provider and converts those bytes to raw PCM before handing them to LiveKit.
 """
 
 from __future__ import annotations
 
 import asyncio
 import base64
+import io
 
 import aiohttp
+import av
+from av.audio.resampler import AudioResampler
 from livekit.agents import tts
 from livekit.agents._exceptions import APIConnectionError, APIStatusError, APITimeoutError
 from livekit.agents.types import APIConnectOptions, DEFAULT_API_CONNECT_OPTIONS
 from livekit.plugins.sarvam import tts as sarvam_tts
+
+
+def _as_list(frame_or_frames: object) -> list[av.AudioFrame]:
+    if frame_or_frames is None:
+        return []
+    if isinstance(frame_or_frames, list):
+        return frame_or_frames
+    return [frame_or_frames]
+
+
+def _decode_to_pcm(audio_bytes: bytes, *, sample_rate: int, num_channels: int) -> bytes:
+    if not audio_bytes:
+        raise ValueError("empty audio payload")
+
+    layout = "mono" if num_channels == 1 else "stereo"
+    last_error: Exception | None = None
+
+    for input_format in (None, "mp3", "wav"):
+        try:
+            with av.open(io.BytesIO(audio_bytes), format=input_format) as container:
+                audio_stream = next(
+                    (stream for stream in container.streams if stream.type == "audio"),
+                    None,
+                )
+                if audio_stream is None:
+                    raise ValueError("payload contains no audio stream")
+
+                resampler = AudioResampler(format="s16", layout=layout, rate=sample_rate)
+                chunks: list[bytes] = []
+                for packet in container.demux(audio_stream):
+                    for frame in packet.decode():
+                        for resampled in _as_list(resampler.resample(frame)):
+                            chunks.append(resampled.to_ndarray().tobytes())
+
+                for resampled in _as_list(resampler.resample(None)):
+                    chunks.append(resampled.to_ndarray().tobytes())
+
+                pcm = b"".join(chunks)
+                if not pcm:
+                    raise ValueError("payload decoded without audio frames")
+                return pcm
+        except Exception as e:  # noqa: BLE001 - try the next plausible container.
+            last_error = e
+
+    raise ValueError(f"unable to decode Sarvam audio payload: {last_error}") from last_error
 
 
 class SarvamMpegChunkedStream(sarvam_tts.ChunkedStream):
@@ -64,14 +112,27 @@ class SarvamMpegChunkedStream(sarvam_tts.ChunkedStream):
                 if not audios or not isinstance(audios, list):
                     raise APIConnectionError("Sarvam TTS API response invalid: no audio data")
 
+                compressed_audio = b"".join(base64.b64decode(audio_b64) for audio_b64 in audios)
+                try:
+                    pcm_audio = _decode_to_pcm(
+                        compressed_audio,
+                        sample_rate=self._tts.sample_rate,
+                        num_channels=self._tts.num_channels,
+                    )
+                except ValueError as e:
+                    audio_prefix = compressed_audio[:8].hex()
+                    raise APIConnectionError(
+                        "Sarvam TTS response could not be decoded "
+                        f"(bytes={len(compressed_audio)}, prefix={audio_prefix})"
+                    ) from e
+
                 output_emitter.initialize(
                     request_id=request_id or "unknown",
                     sample_rate=self._tts.sample_rate,
                     num_channels=self._tts.num_channels,
-                    mime_type="audio/mpeg",
+                    mime_type="audio/pcm",
                 )
-                for audio_b64 in audios:
-                    output_emitter.push(base64.b64decode(audio_b64))
+                output_emitter.push(pcm_audio)
         except asyncio.TimeoutError as e:
             raise APITimeoutError("Sarvam TTS API request timed out") from e
         except aiohttp.ClientError as e:

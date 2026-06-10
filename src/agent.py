@@ -5,10 +5,10 @@ import tomllib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 from dotenv import load_dotenv
-from livekit.agents import JobContext, WorkerOptions, cli, llm as livekit_llm
+from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents.types import NOT_GIVEN
 from livekit.agents.voice import Agent, AgentSession, room_io
 from livekit.plugins import noise_cancellation, silero
@@ -165,79 +165,6 @@ class AgentConfig:
         )
 
 
-class MockSTT:
-    """Mock STT that returns predefined responses for testing"""
-    def __init__(self, *args, **kwargs):
-        pass
-
-    async def recognize(self, buffer):
-        # Return empty recognition for testing
-        from livekit.agents import stt
-        return stt.SpeechEvent(
-            type=stt.SpeechEventType.INTERIM,
-            alternatives=[stt.SpeechData(text="", language="")],
-        )
-
-
-class MockLLM(livekit_llm.LLM):
-    """Mock LLM that returns stall phrases for testing"""
-    def __init__(self) -> None:
-        super().__init__()
-        self._responses = [
-            "I see",
-            "Go on",
-            "Can you tell me more?",
-            "Okay, I'm listening",
-            "Hmm, interesting",
-            "Please continue",
-            "I understand",
-            "That's good to know",
-        ]
-        self._index = 0
-
-    def chat(self, **kwargs):
-        # Return a mock response
-        from livekit.agents.llm import ChatChunk, ChoiceDelta
-        response_text = self._responses[self._index % len(self._responses)]
-        self._index += 1
-        
-        chunk = ChatChunk(
-            id="mock",
-            choices=[ChoiceDelta(delta={"role": "assistant", "content": response_text})],
-            created=0,
-            model="mock",
-        )
-        return AsyncIteratorMock([chunk])
-
-
-class MockTTS:
-    """Mock TTS that does nothing"""
-    def __init__(self, *args, **kwargs):
-        pass
-
-    async def synthesize(self, text, **kwargs):
-        from livekit.agents import tts
-        return tts.SynthesizedAudio(
-            data=b"", sample_rate=16000, num_channels=1
-        )
-
-
-class AsyncIteratorMock:
-    def __init__(self, items):
-        self._items = items
-        self._index = 0
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        if self._index >= len(self._items):
-            raise StopAsyncIteration
-        item = self._items[self._index]
-        self._index += 1
-        return item
-
-
 def load_config() -> AgentConfig:
     with open(CONFIG_PATH, "rb") as config_file:
         return AgentConfig.from_dict(tomllib.load(config_file))
@@ -251,13 +178,10 @@ def load_instructions(path: str | Path = INSTRUCTIONS_PATH) -> str:
 def create_stt(config: AgentConfig):
     """Create STT instance based on configuration."""
     api_key = os.environ.get("SARVAM_API_KEY")
-    
-    # Use mock STT if no Sarvam key
+
     if not api_key or api_key == "your_sarvam_api_key":
-        logger.info("Using mock STT (no Sarvam API key)")
-        return MockSTT()
-    
-    # Real Sarvam STT
+        raise ValueError("SARVAM_API_KEY is required for Sarvam STT")
+
     logger.info("Using Sarvam STT model=%s language=%s", config.stt.model, config.stt.language)
     from livekit.plugins import sarvam
     return sarvam.STT(
@@ -273,13 +197,12 @@ def create_stt(config: AgentConfig):
 def create_llm(config: AgentConfig):
     """Create LLM instance based on configuration."""
     api_key = os.environ.get("OPENAI_API_KEY")
-    
-    # Use mock LLM if no OpenAI key
-    if not api_key or api_key == "your_openai_api_key" or api_key.startswith("sk-or-"):
-        logger.info("Using mock LLM (no OpenAI API key)")
-        return MockLLM()
-    
-    # Real OpenAI LLM
+
+    if not api_key or api_key == "your_openai_api_key":
+        raise ValueError("OPENAI_API_KEY is required for the OpenAI LLM")
+    if api_key.startswith("sk-or-"):
+        raise ValueError("OPENAI_API_KEY must be an OpenAI key, not an OpenRouter key")
+
     logger.info("Using OpenAI LLM")
     from livekit.plugins import openai as livekit_openai
     
@@ -294,13 +217,10 @@ def create_llm(config: AgentConfig):
 def create_tts(config: AgentConfig):
     """Create TTS instance based on configuration."""
     api_key = os.environ.get("SARVAM_API_KEY")
-    
-    # Use mock TTS if no Sarvam key
+
     if not api_key or api_key == "your_sarvam_api_key":
-        logger.info("Using mock TTS (no Sarvam API key)")
-        return MockTTS()
-    
-    # Real Sarvam TTS
+        raise ValueError("SARVAM_API_KEY is required for Sarvam TTS")
+
     logger.info("Using Sarvam TTS model=%s speaker=%s", config.tts.model, config.tts.voice)
     from livekit.agents import tts
     from src.sarvam_mpeg_tts import SarvamMpegTTS
