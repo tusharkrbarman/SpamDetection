@@ -1,9 +1,30 @@
 [project]
 name = "sarvam-livekit-voice-agent"
 version = "0.1.0"
-description = "Minimal LiveKit voice agent with Sarvam STT/TTS and OpenAI LLM"
+description = "AI spam call detection and TRAI DND reporting voice agent for India using LiveKit, Sarvam STT/TTS, Gemini/OpenAI, and Telegram alerts"
 readme = "README.md"
 requires-python = ">=3.12"
+keywords = [
+    "ai-spam-call-detection",
+    "spam-call-blocker",
+    "trai-dnd",
+    "india-spam-calls",
+    "livekit-agent",
+    "sarvam-ai",
+    "telegram-bot",
+    "sip-telephony",
+    "voice-agent",
+    "otp-phishing",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Telecommunications Industry",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Telephony",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "livekit-agents[openai,sarvam,silero]~=1.4.5",
     "livekit-plugins-noise-cancellation>=0.2.5",

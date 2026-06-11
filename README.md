@@ -1,6 +1,12 @@
-# Spam Call Detection Agent
+# AI Spam Call Detection Agent for India
 
-LiveKit voice agent that answers unknown calls, stalls the caller for 38 seconds, classifies the transcript as spam or legitimate, and sends you a Telegram alert with evidence.
+AI-powered spam call detection and call screening agent for India. This LiveKit voice agent answers unknown callers, keeps suspected telemarketers talking for 38 seconds, transcribes the call with Sarvam STT, classifies the transcript with Gemini or OpenAI, and sends a Telegram spam alert with evidence and an optional TRAI DND complaint handoff.
+
+Built for Indian spam-call workflows: credit card calls, loan offers, insurance sales, KYC/OTP phishing, fake bank calls, real estate promotions, and unsolicited commercial communication (UCC) reporting through TRAI `1909`.
+
+## Keywords
+
+AI spam call detection, spam call blocker, India DND app, TRAI DND, TRAI spam complaint, LiveKit voice agent, SIP call screening, Sarvam AI STT, Sarvam TTS, Gemini spam classifier, Telegram bot alerts, UCC complaint, phone scam detection, OTP phishing detection, telemarketing call filter.
 
 ## Stack
 
@@ -9,6 +15,27 @@ LiveKit voice agent that answers unknown calls, stalls the caller for 38 seconds
 - **Gemini `gemini-3.1-flash-lite`** - Development LLM and spam classification
 - **Sarvam `bulbul:v3`** - Text-to-speech (TTS)
 - **Telegram Bot API** - Spam alerts with evidence
+
+## Core Features
+
+- **AI call screening** for unknown or forwarded phone calls
+- **38-second stalling conversation** to collect enough caller evidence
+- **India-specific spam detection** for OTP phishing, credit card offers, loans, insurance, KYC, UPI/payment requests, real estate, and telemarketing
+- **Sarvam STT/TTS** for India-friendly speech recognition and voice output
+- **LiveKit Telephony/SIP support** for real inbound phone calls
+- **Telegram spam alerts** with caller number, confidence, reason, evidence, and transcript snippet
+- **TRAI DND complaint draft** in `Reason, caller-or-sender, dd/mm/yy` format
+- **Report to TRAI button** that opens a confirmation page and prefilled SMS to `1909`
+- **User confirmation before reporting** so the system does not silently send SMS
+
+## Use Cases
+
+- Screen unknown phone calls before you answer them
+- Detect Indian spam calls and telemarketing pitches
+- Collect evidence from suspected phishing calls
+- Prepare TRAI DND/UCC complaint drafts
+- Build a personal AI call assistant with LiveKit, Sarvam, Gemini/OpenAI, and Telegram
+- Prototype an Android companion app for unknown-number filtering
 
 ## How It Works
 
@@ -166,14 +193,13 @@ TRAI_REPORT_SERVER_PORT=8787
 
 ## Telephony Setup
 
-To receive actual phone calls, you need to route them into LiveKit. The most common approach:
+To receive actual phone calls, route a phone number into LiveKit Telephony. Options include:
 
-**Twilio SIP Trunking:**
-1. Set up a Twilio phone number
-2. Configure Twilio SIP trunk to point to your LiveKit SIP URI
-3. LiveKit will create a room for each incoming call and your agent joins it
+- LiveKit's included US local phone number on supported plans
+- Third-party SIP providers such as Twilio, Exotel, Plivo, or Telnyx
+- Conditional call forwarding from your mobile carrier to the LiveKit/SIP number
 
-See [LiveKit SIP docs](https://docs.livekit.io/sip/) for detailed setup.
+LiveKit creates a room for each inbound call and dispatches the `spambuster-agent` worker into that room. See [LiveKit SIP docs](https://docs.livekit.io/sip/) for detailed setup.
 
 ## Docker
 

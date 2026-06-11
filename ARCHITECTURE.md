@@ -33,7 +33,7 @@ Incoming call
 
 ### Gemini Development Adapter
 
-[src/gemini_llm.py](src/gemini_llm.py) provides a small Gemini REST adapter for LiveKit LLM responses and spam classification. The development config uses `gemini-2.5-flash-lite`.
+[src/gemini_llm.py](src/gemini_llm.py) provides a small Gemini REST adapter for LiveKit LLM responses and spam classification. The development config uses `gemini-3.1-flash-lite`.
 
 ### OpenAI Classifier
 
@@ -66,7 +66,7 @@ Development uses Gemini free-tier API credentials:
 LLM_PROVIDER=gemini
 SPAM_CLASSIFIER_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_api_key
-SPAM_CLASSIFICATION_MODEL=gemini-2.5-flash-lite
+SPAM_CLASSIFICATION_MODEL=gemini-3.1-flash-lite
 ```
 
 To switch back to OpenAI, set both providers to `openai` and provide `OPENAI_API_KEY`.
