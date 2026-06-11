@@ -4,6 +4,12 @@ AI-powered spam call detection and call screening agent for India. This LiveKit 
 
 Built for Indian spam-call workflows: credit card calls, loan offers, insurance sales, KYC/OTP phishing, fake bank calls, real estate promotions, and unsolicited commercial communication (UCC) reporting through TRAI `1909`.
 
+## About
+
+This project is a personal AI call-screening system for unknown and suspected spam callers in India. It combines LiveKit telephony, Sarvam speech models, Gemini/OpenAI language models, and Telegram notifications to create a voice agent that answers calls, gathers evidence, classifies spam, and prepares TRAI DND complaint drafts for user-approved reporting.
+
+The goal is to reduce interruption from telemarketing and phishing calls while keeping the user in control. The agent does not silently report callers or send SMS messages; it provides a compact explanation, transcript evidence, caller number when available, and a confirmation path for sending a TRAI `1909` complaint.
+
 ## Keywords
 
 AI spam call detection, spam call blocker, India DND app, TRAI DND, TRAI spam complaint, LiveKit voice agent, SIP call screening, Sarvam AI STT, Sarvam TTS, Gemini spam classifier, Telegram bot alerts, UCC complaint, phone scam detection, OTP phishing detection, telemarketing call filter.
