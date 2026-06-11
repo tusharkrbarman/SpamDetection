@@ -35,21 +35,45 @@ def test_build_trai_complaint_text():
         received_at=received_at,
     )
 
-    assert text == "Unsolicited credit card offer, +919876543210, 09/06/26"
+    assert text == "Unsolicited credit card call, +919876543210, 09/06/26"
 
 
 def test_build_trai_complaint_text_uses_india_date():
     received_at = datetime(2026, 6, 9, 20, 0, tzinfo=timezone.utc)
     text = build_trai_complaint_text(_result(), sender="AX-BANK", received_at=received_at)
 
-    assert text == "Unsolicited credit card offer, AXBANK, 10/06/26"
+    assert text == "Unsolicited credit card call, AXBANK, 10/06/26"
+
+
+def test_build_trai_complaint_text_compacts_otp_credit_card_reason():
+    result = ClassificationResult(
+        is_spam=True,
+        confidence=0.95,
+        reason="The caller is explicitly asking for an OTP to issue a credit card, which is phishing.",
+        evidence_lines=["Caller: Tell me the OTP to issue your credit card"],
+        full_transcript="Caller: Share OTP for your new credit card.",
+    )
+    text = build_trai_complaint_text(
+        result,
+        sender="+1 415 555 0100",
+        received_at=datetime(2026, 6, 11, tzinfo=timezone.utc),
+    )
+
+    assert text == "OTP requested for credit card, +14155550100, 11/06/26"
 
 
 def test_build_trai_complaint_text_truncates_long_reason():
-    text = build_trai_complaint_text(_result("x" * 200), received_at=datetime(2026, 6, 9))
+    result = ClassificationResult(
+        is_spam=True,
+        confidence=0.9,
+        reason="x" * 200,
+        evidence_lines=[],
+        full_transcript="General promotional call",
+    )
+    text = build_trai_complaint_text(result, received_at=datetime(2026, 6, 9))
 
     description = text.split(",", maxsplit=1)[0]
-    assert len(description) == 120
+    assert len(description) == 80
     assert description.endswith("...")
 
 

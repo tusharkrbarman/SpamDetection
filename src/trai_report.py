@@ -8,6 +8,7 @@ from src.classification_result import ClassificationResult
 TRAI_SMS_SHORT_CODE = "1909"
 UNKNOWN_SENDER = "UNKNOWN"
 INDIA_TIMEZONE = timezone(timedelta(hours=5, minutes=30))
+MAX_COMPLAINT_DESCRIPTION_CHARS = 80
 
 
 def normalize_sender(sender: str | None) -> str:
@@ -67,11 +68,47 @@ def build_report_confirmation_url(
 
 
 def _build_description(result: ClassificationResult) -> str:
+    text = " ".join(
+        part
+        for part in [
+            result.reason,
+            " ".join(result.evidence_lines),
+            result.full_transcript,
+        ]
+        if part
+    ).lower()
+
+    compact_description = _keyword_description(text)
+    if compact_description:
+        return compact_description
+
     reason = " ".join(result.reason.split())
     if not reason:
         return "Unsolicited commercial communication"
 
-    if len(reason) <= 120:
+    if len(reason) <= MAX_COMPLAINT_DESCRIPTION_CHARS:
         return reason
 
-    return f"{reason[:117].rstrip()}..."
+    return f"{reason[: MAX_COMPLAINT_DESCRIPTION_CHARS - 3].rstrip()}..."
+
+
+def _keyword_description(text: str) -> str | None:
+    if "otp" in text and "credit card" in text:
+        return "OTP requested for credit card"
+    if "otp" in text:
+        return "OTP requested"
+    if "cvv" in text or "pin" in text:
+        return "Card/banking secret requested"
+    if "credit card" in text:
+        return "Unsolicited credit card call"
+    if "loan" in text:
+        return "Unsolicited loan call"
+    if "insurance" in text or "policy" in text:
+        return "Unsolicited insurance call"
+    if "kyc" in text:
+        return "KYC verification call"
+    if "upi" in text or "payment" in text:
+        return "Payment/UPI request call"
+    if "real estate" in text or "property" in text:
+        return "Unsolicited real estate call"
+    return None

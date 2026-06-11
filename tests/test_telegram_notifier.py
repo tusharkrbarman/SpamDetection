@@ -43,7 +43,7 @@ class TestTelegramNotifier:
 
         message = _build_message_html(result)
 
-        assert len(message) <= 3900
+        assert len(message) <= 2400
         assert "&lt;quota&gt;" in message
         assert "<quota>" not in message
         assert "&lt;transcript&gt;" in message
@@ -112,6 +112,7 @@ class TestTelegramNotifier:
         html_message = _build_message_html(result)
         
         assert "🚨 <b>SPAM CALL DETECTED</b>" in html_message
+        assert "Caller: <code>Unavailable</code>" in html_message
         assert "Confidence:" in html_message
         assert "<code>80%</code>" in html_message
         assert "Test reason" in html_message
@@ -121,6 +122,12 @@ class TestTelegramNotifier:
         assert "<code>Test transcript" in html_message
         assert "<b>TRAI complaint draft:</b>" in html_message
         assert "To: <code>1909</code>" in html_message
+
+    def test_build_message_html_includes_caller_number(self):
+        result = self._create_test_result(is_spam=True, confidence=0.8)
+        html_message = _build_message_html(result, caller_number="+14155550100")
+
+        assert "Caller: <code>+14155550100</code>" in html_message
 
     def test_build_reply_markup_without_report_url(self):
         """Test that no Telegram button is sent without a report URL."""

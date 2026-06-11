@@ -18,6 +18,7 @@ sys.modules['livekit.plugins.silero'] = MagicMock()
 
 from src.agent import (
     VoiceAgent,
+    extract_caller_number_from_participant,
     extract_caller_number_from_room,
     extract_transcript_from_chat_ctx,
     SpamDetectionConfig,
@@ -129,6 +130,12 @@ class TestAgentFunctionality:
         room = MockRoom({"caller": MockParticipant({"sip.callID": "abc"})})
 
         assert extract_caller_number_from_room(room) is None
+
+    def test_extract_caller_number_from_participant_fallback(self):
+        """Test caller number extraction from provider-specific attributes."""
+        participant = MockParticipant({"caller_id": "+14155550100"})
+
+        assert extract_caller_number_from_participant(participant) == "+14155550100"
     
     def test_spam_detection_config_defaults(self):
         """Test SpamDetectionConfig default values"""

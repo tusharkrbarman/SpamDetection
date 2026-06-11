@@ -15,10 +15,10 @@ logger = logging.getLogger("telegram-notifier")
 logger.setLevel(logging.INFO)
 
 TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
-MAX_TELEGRAM_MESSAGE_CHARS = 3900
-MAX_TELEGRAM_REASON_CHARS = 500
-MAX_TELEGRAM_EVIDENCE_CHARS = 300
-MAX_TELEGRAM_TRANSCRIPT_CHARS = 1800
+MAX_TELEGRAM_MESSAGE_CHARS = 2400
+MAX_TELEGRAM_REASON_CHARS = 240
+MAX_TELEGRAM_EVIDENCE_CHARS = 160
+MAX_TELEGRAM_TRANSCRIPT_CHARS = 900
 
 
 def _truncate_text(text: str, max_chars: int) -> str:
@@ -45,7 +45,7 @@ def _build_message(result: ClassificationResult) -> str:
 
     if result.evidence_lines:
         lines.append("*Evidence from transcript:*")
-        for line in result.evidence_lines:
+        for line in result.evidence_lines[:3]:
             lines.append(f"_{line}_")
         lines.append("")
 
@@ -123,6 +123,7 @@ def _build_message_html(
     lines = [
         status,
         "",
+        f"Caller: <code>{_html_escape(caller_number or 'Unavailable')}</code>",
         f"Confidence: <code>{confidence_pct}</code>",
         f"Reason: {_html_escape(_truncate_text(result.reason, MAX_TELEGRAM_REASON_CHARS))}",
         "",
@@ -157,7 +158,7 @@ def _build_message_html(
             lines.append(f"<i>• {escaped}</i>")
         lines.append("")
 
-    lines.append("<b>Full transcript:</b>")
+    lines.append("<b>Transcript snippet:</b>")
     transcript = _truncate_text(result.full_transcript, MAX_TELEGRAM_TRANSCRIPT_CHARS)
     escaped_transcript = _html_escape(transcript)
     lines.append(f"<code>{escaped_transcript}</code>")

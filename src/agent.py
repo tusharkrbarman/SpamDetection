@@ -288,16 +288,42 @@ def extract_caller_number_from_room(room) -> str | None:
         participant_iterable = participants
 
     for participant in participant_iterable:
-        attributes = getattr(participant, "attributes", None) or {}
-        number = (
-            attributes.get("sip.phoneNumber")
-            or attributes.get("phone_number")
-            or attributes.get("caller_number")
-        )
+        number = extract_caller_number_from_participant(participant)
         if number:
-            return str(number)
+            return number
 
     return None
+
+
+def extract_caller_number_from_participant(participant) -> str | None:
+    attributes = getattr(participant, "attributes", None) or {}
+    number = (
+        attributes.get("sip.phoneNumber")
+        or attributes.get("sip.phone_number")
+        or attributes.get("phone_number")
+        or attributes.get("caller_number")
+        or attributes.get("caller_id")
+    )
+    if not number:
+        return None
+
+    return str(number)
+
+
+async def wait_for_caller_number(ctx: JobContext, timeout: float = 5.0) -> str | None:
+    number = extract_caller_number_from_room(ctx.room)
+    if number:
+        return number
+
+    try:
+        participant = await asyncio.wait_for(ctx.wait_for_participant(), timeout=timeout)
+    except asyncio.TimeoutError:
+        return None
+    except Exception:
+        logger.exception("Failed while waiting for caller participant")
+        return None
+
+    return extract_caller_number_from_participant(participant)
 
 
 class MockClassificationResult:
@@ -388,6 +414,10 @@ class VoiceAgent(Agent):
             add_to_chat_ctx=True,
         )
         logger.info("Greeting scheduled")
+
+    def set_caller_number(self, caller_number: str | None) -> None:
+        if caller_number:
+            self._caller_number = caller_number
 
     async def _end_call_after_timeout(self) -> None:
         duration = self._config.spam_detection.call_duration_seconds
@@ -500,9 +530,19 @@ async def entrypoint(ctx: JobContext):
         ),
     )
 
+    if not caller_number:
+        caller_number = await wait_for_caller_number(ctx)
+        if caller_number:
+            logger.info("Detected caller number from SIP participant: %s", caller_number)
+            agent.set_caller_number(caller_number)
+        else:
+            logger.warning(
+                "Caller number unavailable; check the dispatch rule does not hide phone numbers"
+            )
+
     await call_ended_event.wait()
-    logger.info("Call processing complete, disconnecting from room")
-    await ctx.room.disconnect()
+    logger.info("Call processing complete, deleting room to disconnect caller")
+    await ctx.delete_room()
 
 
 def prewarm(proc) -> None:
@@ -516,4 +556,10 @@ def prewarm(proc) -> None:
 
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, prewarm_fnc=prewarm))
+    cli.run_app(
+        WorkerOptions(
+            entrypoint_fnc=entrypoint,
+            prewarm_fnc=prewarm,
+            agent_name="spambuster-agent",
+        )
+    )
