@@ -29,3 +29,6 @@ dist/
 
 # Local output
 *.log
+
+# Private local notes
+INTERVIEW_NOTES_PRIVATE.md
